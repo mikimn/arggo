@@ -2,17 +2,18 @@
 import functools
 from dataclasses import is_dataclass
 from typing import Any, Callable, Optional, get_type_hints
-from .parser import HfArgumentParser
+from .parser import DataClassArgumentParser
 
 TaskFunction = Callable[[Any], Any]
 
 
 def argo(
     parser_argument_index=0,
-) -> Callable[[TaskFunction], Any]:
-    """
-    :param config_path: the config path, a directory relative to the declaring python file.
-    :param config_name: the name of the config (usually the file name without the .yaml extension)
+) -> object:
+    """Decorate a main method with this decorator to enable Argo
+
+    :param parser_argument_index: The index of the argument which will be our dataclass (default: 0). This is useful
+    when the main method receives more than one argument in a non-standard ordering.
     """
 
     def main_decorator(task_function: TaskFunction) -> Callable[[], None]:
@@ -23,9 +24,12 @@ def argo(
             else:
                 type_hints = list(get_type_hints(task_function).items())
                 parser_argument_name, parser_argument_type_hint = type_hints[parser_argument_index]
-                assert is_dataclass(parser_argument_type_hint)
+                if not is_dataclass(parser_argument_type_hint):
+                    raise ValueError(f"Function argument {parser_argument_name} "
+                                     f"declared type {parser_argument_type_hint} "
+                                     f"but {parser_argument_type_hint} is not a dataclass.")
 
-                parser = HfArgumentParser(parser_argument_type_hint)
+                parser = DataClassArgumentParser(parser_argument_type_hint)
                 args = parser.parse_args()
                 task_function(args)
 

@@ -39,7 +39,7 @@ def string_to_bool(v):
         )
 
 
-class HfArgumentParser(ArgumentParser):
+class DataClassArgumentParser(ArgumentParser):
     """
     This subclass of `argparse.ArgumentParser` uses type hints on dataclasses to generate arguments.
     The class is designed to play well with the native argparse. In particular, you can add more (non-dataclass backed)

@@ -14,6 +14,12 @@ Argo is largely inspired by
 and the `HfArgumentParser` utility from 
 [🤗 Transformers](https://github.com/huggingface/transformers).
 
+## Table of Contents
+
+* [Installation](#Installation)
+* [Getting Started](#Getting Started)
+* [Features](#Features)
+
 ## Installation
 To install Argo, run
 ```shell script
@@ -47,7 +53,7 @@ Test by running
 python main.py --name John --should_greet
 ```
 Outputs
-```shell script
+```text
 Greetings, John!
 ```
 
