@@ -23,7 +23,6 @@ def argo(
             else:
                 type_hints = list(get_type_hints(task_function).items())
                 parser_argument_name, parser_argument_type_hint = type_hints[parser_argument_index]
-                print(parser_argument_type_hint)
                 assert is_dataclass(parser_argument_type_hint)
 
                 parser = HfArgumentParser(parser_argument_type_hint)
