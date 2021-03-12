@@ -17,9 +17,9 @@ and the `HfArgumentParser` utility from
 
 ## Table of Contents
 
-* [Installation](#Installation)
-* [Getting Started]()
-* [Features](#Features)
+* [Installation](#installation)
+* [Getting Started](#getting-started)
+* [Features](#features)
 
 ## Installation
 To install Argo, run
