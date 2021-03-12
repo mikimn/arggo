@@ -70,8 +70,8 @@ That's it!
 
 ## Contributing
 
-We welcome early adopters and contributors to this project! See the [Contributing]()
+We welcome early adopters and contributors to this project! See the [Contributing](CONTRIBUTING.md) section for details.
 
 ## License
 
-This project is open-sourced under the MIT license. See [LICENSE](LICENSE) for details
+This project is open-sourced under the MIT license. See [LICENSE](LICENSE) for details.
