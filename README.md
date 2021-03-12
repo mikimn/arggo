@@ -1,6 +1,7 @@
 # Argo
 > The no-brainer Python package for experiment management
 
+:warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
 
 Argo is a Python library for managing experiment runs in a clean and elegant manner.
@@ -61,11 +62,15 @@ That's it!
 
 ## Features
 
-TBD
+:construction: To-do list:
+
+* [ ] Proof-of-concept for dataclass arguments
+* [ ] Automatic working directory management
+* [ ] 
 
 ## Contributing
 
-TBD
+We welcome early adopters and contributors to this project! See the [Contributing]()
 
 ## License
 

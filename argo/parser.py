@@ -40,6 +40,58 @@ def string_to_bool(v):
         )
 
 
+def _handle_kwargs_bool(field, kwargs):
+    kwargs["type"] = string_to_bool
+    if field.type is bool or (field.default is not None and field.default is not dataclasses.MISSING):
+        # Default value is True if we have no default when of type bool.
+        default = True if field.default is dataclasses.MISSING else field.default
+        # This is the value that will get picked if we don't include --field_name in any way
+        kwargs["default"] = default
+        # This tells argparse we accept 0 or 1 value after --field_name
+        kwargs["nargs"] = "?"
+        # This is the value that will get picked if we do --field_name (without value)
+        kwargs["const"] = True
+    return kwargs
+
+
+def _handle_kwargs_list(field, kwargs):
+    # Handle Generic list types
+    kwargs["nargs"] = "+"
+    kwargs["type"] = field.type.__args__[0]
+    assert all(
+        x == kwargs["type"] for x in field.type.__args__
+    ), "{} cannot be a List of mixed types".format(field.name)
+    if field.default_factory is not dataclasses.MISSING:
+        kwargs["default"] = field.default_factory()
+    return kwargs
+
+
+def _handle_kwargs_enum(field, kwargs):
+    def parse_argument(arg):
+        assert isinstance(arg, str)
+        arg = arg.lower()
+        enum_types = {
+            **{enum_type.name.lower(): enum_type.value for enum_type in list(field.type)},
+            **{str(enum_type.value): enum_type.value for enum_type in list(field.type)}
+        }
+        if arg in enum_types:
+            return field.type(enum_types[arg.lower()])
+        else:
+            msg = "invalid choice: {} (choose from {})"
+            choices = ", ".join(sorted(repr(choice) for choice in enum_types.keys()))
+            raise ArgumentTypeError(msg.format(arg, choices))
+
+    kwargs["type"] = parse_argument
+    kwargs["choices"] = [x.value for x in field.type] + [x.name.lower() for x in field.type]
+    if field.default is not dataclasses.MISSING:
+        kwargs["default"] = field.default
+    elif field.default_factory is not dataclasses.MISSING:
+        kwargs["default"] = field.default_factory()
+    else:
+        kwargs["required"] = True
+    return kwargs
+
+
 class DataClassArgumentParser(ArgumentParser):
     """
     This subclass of `argparse.ArgumentParser` uses type hints on dataclasses to generate arguments.
@@ -110,64 +162,17 @@ class DataClassArgumentParser(ArgumentParser):
                 )
 
             field = self._cleanup_complex_types(field)
-            # TODO Remove
-            # if isinstance(field.type, type) and issubclass(field.type, Enum):
-            #     kwargs["choices"] = [x.value for x in field.type]
-            #     kwargs["type"] = type(kwargs["choices"][0])
-            #     if field.default is not dataclasses.MISSING:
-            #         kwargs["default"] = field.default
-            # elif field.type is bool or field.type is Optional[bool]:
-            added_argument = False
             if field.type is bool or field.type is Optional[bool]:
                 if field.default is True:
                     self.add_argument(f"--no_{field.name}", action="store_false", dest=field.name, **kwargs)
 
                 # Hack because type=bool in argparse does not behave as we want.
-                kwargs["type"] = string_to_bool
-                if field.type is bool or (field.default is not None and field.default is not dataclasses.MISSING):
-                    # Default value is True if we have no default when of type bool.
-                    default = True if field.default is dataclasses.MISSING else field.default
-                    # This is the value that will get picked if we don't include --field_name in any way
-                    kwargs["default"] = default
-                    # This tells argparse we accept 0 or 1 value after --field_name
-                    kwargs["nargs"] = "?"
-                    # This is the value that will get picked if we do --field_name (without value)
-                    kwargs["const"] = True
+                kwargs = _handle_kwargs_bool(field, kwargs)
             elif hasattr(field.type, "__origin__") and issubclass(field.type.__origin__, List):
-                kwargs["nargs"] = "+"
-                kwargs["type"] = field.type.__args__[0]
-                assert all(
-                    x == kwargs["type"] for x in field.type.__args__
-                ), "{} cannot be a List of mixed types".format(field.name)
-                if field.default_factory is not dataclasses.MISSING:
-                    kwargs["default"] = field.default_factory()
+                # Handle list types (+ generics)
+                kwargs = _handle_kwargs_list(field, kwargs)
             elif isinstance(field.type, type) and issubclass(field.type, Enum):
-                def parse_argument(arg):
-                    assert isinstance(arg, str)
-                    arg = arg.lower()
-                    enum_types = {
-                        **{enum_type.name.lower(): enum_type.value for enum_type in list(field.type)},
-                        **{str(enum_type.value): enum_type.value for enum_type in list(field.type)}
-                    }
-                    if arg in enum_types:
-                        return field.type(enum_types[arg.lower()])
-                    else:
-                        msg = "invalid choice: {} (choose from {})"
-                        choices = ", ".join(sorted(repr(choice) for choice in enum_types.keys()))
-                        raise ArgumentTypeError(msg.format(arg, choices))
-                kwargs["type"] = parse_argument
-                kwargs["choices"] = [x.value for x in field.type] + [x.name.lower() for x in field.type]
-                print(kwargs["choices"])
-                if field.default is not dataclasses.MISSING:
-                    kwargs["default"] = field.default
-                elif field.default_factory is not dataclasses.MISSING:
-                    kwargs["default"] = field.default_factory()
-                else:
-                    kwargs["required"] = True
-
-                self.add_argument(field_name, **kwargs)
-                added_argument = True
-
+                kwargs = _handle_kwargs_enum(field, kwargs)
             else:
                 kwargs["type"] = field.type
                 if field.default is not dataclasses.MISSING:
@@ -176,8 +181,7 @@ class DataClassArgumentParser(ArgumentParser):
                     kwargs["default"] = field.default_factory()
                 else:
                     kwargs["required"] = True
-            if not added_argument:
-                self.add_argument(field_name, **kwargs)
+            self.add_argument(field_name, **kwargs)
 
         self._argument_metadata[dtype] = argument_metadata
 
