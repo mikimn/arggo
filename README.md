@@ -1,16 +1,16 @@
-# Argo
+# Arggo
 > The no-brainer Python package for experiment management
 
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
 
-Argo is a Python library for managing experiment runs in a clean and elegant manner.
+Arggo is a Python library for managing experiment runs in a clean and elegant manner.
 
 Core features:
 * Dataclass-powered automatic argument parsing
 * Automatic directory creation for different runs
 
-Argo is largely inspired by
+Arggo is largely inspired by
 [Hydra](https://hydra.cc/)
 and the `HfArgumentParser` utility from
 [🤗 Transformers](https://github.com/huggingface/transformers).
@@ -22,17 +22,17 @@ and the `HfArgumentParser` utility from
 * [Features](#features)
 
 ## Installation
-To install Argo, run
+To install Arggo, run
 ```shell script
-pip install argo
+pip install arggo
 ```
 
 ## Getting Started
-The simplest use case of Argo is to setup arguments for a script.
+The simplest use case of Arggo is to setup arguments for a script.
 Start by defining arguments in a data class:
 ```python
 from dataclasses import dataclass
-from argo.dataclass_utils import parser_field
+from arggo.dataclass_utils import parser_field
 
 @dataclass
 class Arguments:
@@ -42,9 +42,9 @@ class Arguments:
 
 Then, annotate your main function to magically receive an arguments class :
 ```python
-from argo import argo
+from arggo import arggo
 
-@argo()
+@arggo()
 def main(args: Arguments):
     if args.should_greet:
         print(f"Greetings, {args.name}!")

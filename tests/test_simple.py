@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from argo import argo
-from argo.dataclass_utils import parser_field
+from arggo import arggo
+from arggo.dataclass_utils import parser_field
 
 
 @dataclass
@@ -10,7 +10,7 @@ class Arguments:
     should_greet: bool = parser_field(help="Whether or not I should greet the user")
 
 
-@argo()
+@arggo()
 def main(args: Arguments):
     if args.should_greet:
         print(f"Greetings, {args.name}!")
