@@ -15,8 +15,17 @@
 import dataclasses
 import json
 import sys
-from argparse import ArgumentParser, ArgumentTypeError, Action, ZERO_OR_MORE, OPTIONAL, REMAINDER, PARSER, SUPPRESS, \
-    ArgumentError
+from argparse import (
+    ArgumentParser,
+    ArgumentTypeError,
+    Action,
+    ZERO_OR_MORE,
+    OPTIONAL,
+    REMAINDER,
+    PARSER,
+    SUPPRESS,
+    ArgumentError,
+)
 from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, List, NewType, Optional, Tuple, Union, Text
@@ -42,7 +51,9 @@ def string_to_bool(v):
 
 def _handle_kwargs_bool(field, kwargs):
     kwargs["type"] = string_to_bool
-    if field.type is bool or (field.default is not None and field.default is not dataclasses.MISSING):
+    if field.type is bool or (
+        field.default is not None and field.default is not dataclasses.MISSING
+    ):
         # Default value is True if we have no default when of type bool.
         default = True if field.default is dataclasses.MISSING else field.default
         # This is the value that will get picked if we don't include --field_name in any way
@@ -71,8 +82,11 @@ def _handle_kwargs_enum(field, kwargs):
         assert isinstance(arg, str)
         arg = arg.lower()
         enum_types = {
-            **{enum_type.name.lower(): enum_type.value for enum_type in list(field.type)},
-            **{str(enum_type.value): enum_type.value for enum_type in list(field.type)}
+            **{
+                enum_type.name.lower(): enum_type.value
+                for enum_type in list(field.type)
+            },
+            **{str(enum_type.value): enum_type.value for enum_type in list(field.type)},
         }
         if arg in enum_types:
             return field.type(enum_types[arg.lower()])
@@ -82,7 +96,9 @@ def _handle_kwargs_enum(field, kwargs):
             raise ArgumentTypeError(msg.format(arg, choices))
 
     kwargs["type"] = parse_argument
-    kwargs["choices"] = [x.value for x in field.type] + [x.name.lower() for x in field.type]
+    kwargs["choices"] = [x.value for x in field.type] + [
+        x.name.lower() for x in field.type
+    ]
     if field.default is not dataclasses.MISSING:
         kwargs["default"] = field.default
     elif field.default_factory is not dataclasses.MISSING:
@@ -102,7 +118,9 @@ class DataClassArgumentParser(ArgumentParser):
 
     dataclass_types: Iterable[DataClassType]
 
-    def __init__(self, dataclass_types: Union[DataClassType, Iterable[DataClassType]], **kwargs):
+    def __init__(
+        self, dataclass_types: Union[DataClassType, Iterable[DataClassType]], **kwargs
+    ):
         """
         Args:
             dataclass_types:
@@ -123,13 +141,13 @@ class DataClassArgumentParser(ArgumentParser):
         for prim_type in (int, float, str):
             for collection in (List,):
                 if (
-                        typestring == f"typing.Union[{collection[prim_type]}, NoneType]"
-                        or typestring == f"typing.Optional[{collection[prim_type]}]"
+                    typestring == f"typing.Union[{collection[prim_type]}, NoneType]"
+                    or typestring == f"typing.Optional[{collection[prim_type]}]"
                 ):
                     field.type = collection[prim_type]
             if (
-                    typestring == f"typing.Union[{prim_type.__name__}, NoneType]"
-                    or typestring == f"typing.Optional[{prim_type.__name__}]"
+                typestring == f"typing.Union[{prim_type.__name__}, NoneType]"
+                or typestring == f"typing.Optional[{prim_type.__name__}]"
             ):
                 field.type = prim_type
         return field
@@ -139,10 +157,9 @@ class DataClassArgumentParser(ArgumentParser):
         if isinstance(value, Enum):
             value = value.value
         if action.choices is not None and value not in action.choices:
-                args = {'value': value,
-                        'choices': ', '.join(map(repr, action.choices))}
-                msg = _('invalid choice: %(value)r (choose from %(choices)s)')
-                raise ArgumentError(action, msg % args)
+            args = {"value": value, "choices": ", ".join(map(repr, action.choices))}
+            msg = _("invalid choice: %(value)r (choose from %(choices)s)")
+            raise ArgumentError(action, msg % args)
 
     def _add_dataclass_arguments(self, dtype: DataClassType):
         assert dtype not in self._argument_metadata
@@ -164,11 +181,18 @@ class DataClassArgumentParser(ArgumentParser):
             field = self._cleanup_complex_types(field)
             if field.type is bool or field.type is Optional[bool]:
                 if field.default is True:
-                    self.add_argument(f"--no_{field.name}", action="store_false", dest=field.name, **kwargs)
+                    self.add_argument(
+                        f"--no_{field.name}",
+                        action="store_false",
+                        dest=field.name,
+                        **kwargs,
+                    )
 
                 # Hack because type=bool in argparse does not behave as we want.
                 kwargs = _handle_kwargs_bool(field, kwargs)
-            elif hasattr(field.type, "__origin__") and issubclass(field.type.__origin__, List):
+            elif hasattr(field.type, "__origin__") and issubclass(
+                field.type.__origin__, List
+            ):
                 # Handle list types (+ generics)
                 kwargs = _handle_kwargs_list(field, kwargs)
             elif isinstance(field.type, type) and issubclass(field.type, Enum):
@@ -186,7 +210,11 @@ class DataClassArgumentParser(ArgumentParser):
         self._argument_metadata[dtype] = argument_metadata
 
     def parse_args_into_dataclasses(
-        self, args=None, return_remaining_strings=False, look_for_args_file=True, args_filename=None
+        self,
+        args=None,
+        return_remaining_strings=False,
+        look_for_args_file=True,
+        args_filename=None,
     ) -> Tuple[DataClass, ...]:
         """
         Parse command-line args into instances of the specified dataclass types.
@@ -237,7 +265,9 @@ class DataClassArgumentParser(ArgumentParser):
             return (*outputs, remaining_args)
         else:
             if remaining_args:
-                raise ValueError(f"Some specified arguments are not used by the HfArgumentParser: {remaining_args}")
+                raise ValueError(
+                    f"Some specified arguments are not used by the HfArgumentParser: {remaining_args}"
+                )
 
             return (*outputs,)
 

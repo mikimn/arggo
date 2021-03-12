@@ -1,4 +1,3 @@
-
 import functools
 from dataclasses import is_dataclass
 from typing import Any, Callable, Optional, get_type_hints
@@ -23,14 +22,18 @@ def argo(
                 return task_function(args_passthrough)
             else:
                 type_hints = list(get_type_hints(task_function).items())
-                parser_argument_name, parser_argument_type_hint = type_hints[parser_argument_index]
+                parser_argument_name, parser_argument_type_hint = type_hints[
+                    parser_argument_index
+                ]
                 if not is_dataclass(parser_argument_type_hint):
-                    raise ValueError(f"Function argument {parser_argument_name} "
-                                     f"declared type {parser_argument_type_hint} "
-                                     f"but {parser_argument_type_hint} is not a dataclass.")
+                    raise ValueError(
+                        f"Function argument {parser_argument_name} "
+                        f"declared type {parser_argument_type_hint} "
+                        f"but {parser_argument_type_hint} is not a dataclass."
+                    )
 
                 parser = DataClassArgumentParser(parser_argument_type_hint)
-                args, = parser.parse_args_into_dataclasses()
+                (args,) = parser.parse_args_into_dataclasses()
                 task_function(args)
 
         return decorated_main
