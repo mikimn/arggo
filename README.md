@@ -7,18 +7,18 @@ ___
 Argo is a Python library for managing experiment runs in a clean and elegant manner.
 
 Core features:
-* Dataclass-powered automatic argument parsing 
+* Dataclass-powered automatic argument parsing
 * Automatic directory creation for different runs
 
-Argo is largely inspired by 
-[Hydra](https://hydra.cc/) 
-and the `HfArgumentParser` utility from 
+Argo is largely inspired by
+[Hydra](https://hydra.cc/)
+and the `HfArgumentParser` utility from
 [🤗 Transformers](https://github.com/huggingface/transformers).
 
 ## Table of Contents
 
 * [Installation](#Installation)
-* [Getting Started](#Getting Started)
+* [Getting Started]()
 * [Features](#Features)
 
 ## Installation
@@ -66,7 +66,7 @@ That's it!
 
 * [ ] Proof-of-concept for dataclass arguments
 * [ ] Automatic working directory management
-* [ ] 
+* [ ] Service integration
 
 ## Contributing
 
@@ -74,4 +74,4 @@ We welcome early adopters and contributors to this project! See the [Contributin
 
 ## License
 
-This project is open-sourced under the MIT license. See [LICENSE](LICENSE) for details.
+This project is open-sourced under the MIT license. See [LICENSE](LICENSE.md) for details.
