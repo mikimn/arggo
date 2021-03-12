@@ -15,11 +15,12 @@
 import dataclasses
 import json
 import sys
-from argparse import ArgumentParser, ArgumentTypeError
+from argparse import ArgumentParser, ArgumentTypeError, Action, ZERO_OR_MORE, OPTIONAL, REMAINDER, PARSER, SUPPRESS, \
+    ArgumentError
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, List, NewType, Optional, Tuple, Union
-
+from typing import Any, Iterable, List, NewType, Optional, Tuple, Union, Text
+from gettext import gettext as _
 
 DataClass = NewType("DataClass", Any)
 DataClassType = NewType("DataClassType", Any)
@@ -61,10 +62,39 @@ class DataClassArgumentParser(ArgumentParser):
         if dataclasses.is_dataclass(dataclass_types):
             dataclass_types = [dataclass_types]
         self.dataclass_types = dataclass_types
+        self._argument_metadata = dict()
         for dtype in self.dataclass_types:
             self._add_dataclass_arguments(dtype)
 
+    def _cleanup_complex_types(self, field):
+        typestring = str(field.type)
+        for prim_type in (int, float, str):
+            for collection in (List,):
+                if (
+                        typestring == f"typing.Union[{collection[prim_type]}, NoneType]"
+                        or typestring == f"typing.Optional[{collection[prim_type]}]"
+                ):
+                    field.type = collection[prim_type]
+            if (
+                    typestring == f"typing.Union[{prim_type.__name__}, NoneType]"
+                    or typestring == f"typing.Optional[{prim_type.__name__}]"
+            ):
+                field.type = prim_type
+        return field
+
+    def _check_value(self, action, value):
+        # converted value must be one of the choices (if specified)
+        if isinstance(value, Enum):
+            value = value.value
+        if action.choices is not None and value not in action.choices:
+                args = {'value': value,
+                        'choices': ', '.join(map(repr, action.choices))}
+                msg = _('invalid choice: %(value)r (choose from %(choices)s)')
+                raise ArgumentError(action, msg % args)
+
     def _add_dataclass_arguments(self, dtype: DataClassType):
+        assert dtype not in self._argument_metadata
+        argument_metadata = dict()
         for field in dataclasses.fields(dtype):
             if not field.init:
                 continue
@@ -78,26 +108,17 @@ class DataClassArgumentParser(ArgumentParser):
                     "which can be opted in from Python 3.7 with `from __future__ import annotations`."
                     "We will add compatibility when Python 3.9 is released."
                 )
-            typestring = str(field.type)
-            for prim_type in (int, float, str):
-                for collection in (List,):
-                    if (
-                        typestring == f"typing.Union[{collection[prim_type]}, NoneType]"
-                        or typestring == f"typing.Optional[{collection[prim_type]}]"
-                    ):
-                        field.type = collection[prim_type]
-                if (
-                    typestring == f"typing.Union[{prim_type.__name__}, NoneType]"
-                    or typestring == f"typing.Optional[{prim_type.__name__}]"
-                ):
-                    field.type = prim_type
 
-            if isinstance(field.type, type) and issubclass(field.type, Enum):
-                kwargs["choices"] = [x.value for x in field.type]
-                kwargs["type"] = type(kwargs["choices"][0])
-                if field.default is not dataclasses.MISSING:
-                    kwargs["default"] = field.default
-            elif field.type is bool or field.type is Optional[bool]:
+            field = self._cleanup_complex_types(field)
+            # TODO Remove
+            # if isinstance(field.type, type) and issubclass(field.type, Enum):
+            #     kwargs["choices"] = [x.value for x in field.type]
+            #     kwargs["type"] = type(kwargs["choices"][0])
+            #     if field.default is not dataclasses.MISSING:
+            #         kwargs["default"] = field.default
+            # elif field.type is bool or field.type is Optional[bool]:
+            added_argument = False
+            if field.type is bool or field.type is Optional[bool]:
                 if field.default is True:
                     self.add_argument(f"--no_{field.name}", action="store_false", dest=field.name, **kwargs)
 
@@ -120,6 +141,33 @@ class DataClassArgumentParser(ArgumentParser):
                 ), "{} cannot be a List of mixed types".format(field.name)
                 if field.default_factory is not dataclasses.MISSING:
                     kwargs["default"] = field.default_factory()
+            elif isinstance(field.type, type) and issubclass(field.type, Enum):
+                def parse_argument(arg):
+                    assert isinstance(arg, str)
+                    arg = arg.lower()
+                    enum_types = {
+                        **{enum_type.name.lower(): enum_type.value for enum_type in list(field.type)},
+                        **{str(enum_type.value): enum_type.value for enum_type in list(field.type)}
+                    }
+                    if arg in enum_types:
+                        return field.type(enum_types[arg.lower()])
+                    else:
+                        msg = "invalid choice: {} (choose from {})"
+                        choices = ", ".join(sorted(repr(choice) for choice in enum_types.keys()))
+                        raise ArgumentTypeError(msg.format(arg, choices))
+                kwargs["type"] = parse_argument
+                kwargs["choices"] = [x.value for x in field.type] + [x.name.lower() for x in field.type]
+                print(kwargs["choices"])
+                if field.default is not dataclasses.MISSING:
+                    kwargs["default"] = field.default
+                elif field.default_factory is not dataclasses.MISSING:
+                    kwargs["default"] = field.default_factory()
+                else:
+                    kwargs["required"] = True
+
+                self.add_argument(field_name, **kwargs)
+                added_argument = True
+
             else:
                 kwargs["type"] = field.type
                 if field.default is not dataclasses.MISSING:
@@ -128,7 +176,10 @@ class DataClassArgumentParser(ArgumentParser):
                     kwargs["default"] = field.default_factory()
                 else:
                     kwargs["required"] = True
-            self.add_argument(field_name, **kwargs)
+            if not added_argument:
+                self.add_argument(field_name, **kwargs)
+
+        self._argument_metadata[dtype] = argument_metadata
 
     def parse_args_into_dataclasses(
         self, args=None, return_remaining_strings=False, look_for_args_file=True, args_filename=None
@@ -169,6 +220,7 @@ class DataClassArgumentParser(ArgumentParser):
         outputs = []
         for dtype in self.dataclass_types:
             keys = {f.name for f in dataclasses.fields(dtype) if f.init}
+
             inputs = {k: v for k, v in vars(namespace).items() if k in keys}
             for k in keys:
                 delattr(namespace, k)
@@ -191,13 +243,7 @@ class DataClassArgumentParser(ArgumentParser):
         dataclass types.
         """
         data = json.loads(Path(json_file).read_text())
-        outputs = []
-        for dtype in self.dataclass_types:
-            keys = {f.name for f in dataclasses.fields(dtype) if f.init}
-            inputs = {k: v for k, v in data.items() if k in keys}
-            obj = dtype(**inputs)
-            outputs.append(obj)
-        return (*outputs,)
+        return self.parse_dict(data)
 
     def parse_dict(self, args: dict) -> Tuple[DataClass, ...]:
         """

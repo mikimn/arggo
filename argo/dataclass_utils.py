@@ -1,11 +1,13 @@
 from dataclasses import field, MISSING
-from typing import List, Any
+from enum import Enum
+from typing import List, Any, Type
 
 
 # noinspection PyShadowingBuiltins
 def parser_field(default=MISSING, default_factory=MISSING,
                  help: str = None,
                  choices: List[Any] = None,
+                 required: bool = False,
                  *args,
                  **kwargs):
     metadata = kwargs.pop('metadata', None)
@@ -16,6 +18,7 @@ def parser_field(default=MISSING, default_factory=MISSING,
         metadata['help'] = help
     if choices is not None:
         metadata['choices'] = choices
+    metadata['required'] = required
 
     return field(
         default=default,
@@ -24,3 +27,11 @@ def parser_field(default=MISSING, default_factory=MISSING,
         *args,
         **kwargs
     )
+
+
+def enum_field(enum_cls: Type[Enum], default=MISSING, default_factory=MISSING,
+               help: str = None,
+               *args,
+               **kwargs):
+    return parser_field(default=default, default_factory=default_factory,
+                        help=help, *args, **kwargs)

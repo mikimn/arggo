@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 from argo import argo
 from argo.dataclass_utils import parser_field

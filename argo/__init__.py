@@ -1,1 +1,1 @@
-from .main import argo
+from .argo import argo

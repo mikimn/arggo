@@ -9,7 +9,7 @@ TaskFunction = Callable[[Any], Any]
 
 def argo(
     parser_argument_index=0,
-) -> object:
+) -> Callable[[Any], Any]:
     """Decorate a main method with this decorator to enable Argo
 
     :param parser_argument_index: The index of the argument which will be our dataclass (default: 0). This is useful
@@ -30,7 +30,7 @@ def argo(
                                      f"but {parser_argument_type_hint} is not a dataclass.")
 
                 parser = DataClassArgumentParser(parser_argument_type_hint)
-                args = parser.parse_args()
+                args, = parser.parse_args_into_dataclasses()
                 task_function(args)
 
         return decorated_main
