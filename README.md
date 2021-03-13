@@ -1,4 +1,4 @@
-# Arggo
+# <img src="./docs/assets/ship.png" width="50" /> Arggo
 > The no-brainer Python package for experiment management
 
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
@@ -75,3 +75,7 @@ We welcome early adopters and contributors to this project! See the [Contributin
 ## License
 
 This project is open-sourced under the MIT license. See [LICENSE](LICENSE.md) for details.
+
+## Attributions
+
+Icons made by [Freepik](https://www.freepik.com) from [www.flaticon.com](https://www.flaticon.com/)
