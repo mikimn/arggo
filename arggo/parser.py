@@ -18,18 +18,14 @@ import sys
 from argparse import (
     ArgumentParser,
     ArgumentTypeError,
-    Action,
-    ZERO_OR_MORE,
-    OPTIONAL,
-    REMAINDER,
-    PARSER,
-    SUPPRESS,
     ArgumentError,
 )
 from enum import Enum
-from pathlib import Path
-from typing import Any, Iterable, List, NewType, Optional, Tuple, Union, Text
 from gettext import gettext as _
+from pathlib import Path
+from typing import Any, Iterable, List, NewType, Optional, Tuple, Union, Dict, Type
+
+from arggo.types import EnumEncoder
 
 DataClass = NewType("DataClass", Any)
 DataClassType = NewType("DataClassType", Any)
@@ -286,8 +282,29 @@ class DataClassArgumentParser(ArgumentParser):
         """
         outputs = []
         for dtype in self.dataclass_types:
-            keys = {f.name for f in dataclasses.fields(dtype) if f.init}
-            inputs = {k: v for k, v in args.items() if k in keys}
+            fields = dataclasses.fields(dtype)
+            inputs = dict()
+            for field in fields:
+                if isinstance(field.type, type) and issubclass(field.type, Enum):
+                    inputs[field.name] = field.type(args[field.name])
+                elif field.init:
+                    inputs[field.name] = args[field.name]
+
             obj = dtype(**inputs)
             outputs.append(obj)
         return (*outputs,)
+
+
+def dataclass_to_json(args: DataClassType) -> str:
+    """
+    Convert a dataclass arguments object to a JSON string.
+
+    :param args: An arguments object, must be an instance of a `dataclass`
+    :return: A JSON encoded string
+
+    """
+    assert dataclasses.is_dataclass(
+        args
+    ), f"Argument must be an instance of a dataclass, got {args.__class__}"
+    args_dict = dataclasses.asdict(args)
+    return json.dumps(args_dict, cls=EnumEncoder, indent=4)
