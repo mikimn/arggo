@@ -11,8 +11,7 @@ Core features:
 * Automatic directory creation for different runs
 
 Arggo is largely inspired by
-[Hydra](https://hydra.cc/)
-and the `HfArgumentParser` utility from
+[Hydra](https://hydra.cc/) and the `HfArgumentParser` utility from
 [🤗 Transformers](https://github.com/huggingface/transformers).
 
 ## Table of Contents
