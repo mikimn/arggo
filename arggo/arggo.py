@@ -2,14 +2,27 @@ import argparse
 import functools
 import json
 import os
+from argparse import ArgumentParser, Namespace
 from dataclasses import is_dataclass
 from os.path import join
-from typing import Any, Callable, Optional, get_type_hints
+from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence
 
 from .logger import bind_logger_to_stdout, bind_logger_to_stderr
 from .parser import DataClassArgumentParser, dataclass_to_json
 
 TaskFunction = Callable[[Any], Any]
+
+
+class _MetaHelpAction(argparse.Action):
+    def __call__(
+        self,
+        parser: ArgumentParser,
+        namespace: Namespace,
+        values: Union[Text, Sequence[Any], None],
+        option_string: Optional[Text] = ...,
+    ) -> None:
+        parser.print_help()
+        parser.exit()
 
 
 def arggo(
@@ -64,17 +77,18 @@ def arggo(
                 # bind_logger_to_stderr(output_file_path)
 
             parser = DataClassArgumentParser(parser_argument_type_hint)
-            meta_parser = argparse.ArgumentParser()
+            meta_parser = argparse.ArgumentParser(add_help=False)
+
+            meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
             meta_parser.add_argument(
                 "--arggo_parameters_file",
                 type=str,
                 required=False,
                 default=None,
-                help="Use this argument to load a previously"
-                "saved configuration directly from a JSON file.",
+                help="Use this argument to load a previously saved configuration directly from a JSON file.",
             )
-            meta_args = meta_parser.parse_args()
-            if meta_args.arggo_parameters_file is not None:
+            (meta_args,) = meta_parser.parse_known_args()[:1]
+            if meta_args and meta_args.arggo_parameters_file is not None:
                 json_file_path = meta_args.arggo_parameters_file
                 if not os.path.exists(json_file_path):
                     raise FileNotFoundError(
