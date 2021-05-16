@@ -295,7 +295,7 @@ class DataClassArgumentParser(ArgumentParser):
         return (*outputs,)
 
 
-def dataclass_to_json(args: DataClassType) -> str:
+def dataclass_to_json(args: DataClassType, additional_dict: dict = None) -> str:
     """
     Convert a dataclass arguments object to a JSON string.
 
@@ -307,4 +307,6 @@ def dataclass_to_json(args: DataClassType) -> str:
         args
     ), f"Argument must be an instance of a dataclass, got {args.__class__}"
     args_dict = dataclasses.asdict(args)
+    if additional_dict is not None:
+        args_dict.update(additional_dict)
     return json.dumps(args_dict, cls=EnumEncoder, indent=4)
