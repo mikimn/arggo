@@ -1,6 +1,8 @@
+import sys
 from dataclasses import dataclass
 from enum import Enum
 
+sys.path.append("../arggo")
 from arggo import arggo
 from arggo.dataclass_utils import parser_field, enum_field
 

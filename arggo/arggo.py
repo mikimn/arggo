@@ -25,6 +25,19 @@ class _MetaHelpAction(argparse.Action):
         parser.exit()
 
 
+def _init_logging_directory(logging_dir: str, init_working_dir: bool):
+    if init_working_dir:
+        from .utils import working_dir_init
+
+        output_dir, original_working_dir = working_dir_init(logging_dir=logging_dir)
+    else:
+        original_working_dir = os.getcwd()
+        output_dir = join(original_working_dir, logging_dir)
+        os.makedirs(output_dir, exist_ok=True)
+
+    return output_dir, original_working_dir
+
+
 def arggo(
     parser_argument_index=0, logging_dir="logs", init_working_dir=True
 ) -> Callable[[Any], Any]:
@@ -55,26 +68,7 @@ def arggo(
             log_to_file = True
 
             # Working directories
-            if init_working_dir:
-                from .utils import working_dir_init
-
-                output_dir, original_working_dir = working_dir_init(
-                    logging_dir=logging_dir
-                )
-            else:
-                original_working_dir = os.getcwd()
-                output_dir = join(original_working_dir, logging_dir)
-                os.makedirs(output_dir, exist_ok=True)
-
-            # Save output
-            if log_to_file:
-                output_file_name = "output.log"
-                output_file_path = join(output_dir, output_file_name)
-                bind_logger_to_stdout(output_file_path)
-
-                # output_file_name = "output.err"
-                # output_file_path = join(output_dir, output_file_name)
-                # bind_logger_to_stderr(output_file_path)
+            # output_dir, original_working_dir = _init_logging_directory(logging_dir, init_working_dir)
 
             parser = DataClassArgumentParser(parser_argument_type_hint)
             meta_parser = argparse.ArgumentParser(add_help=False)
@@ -94,18 +88,28 @@ def arggo(
                     raise FileNotFoundError(
                         f"Parameters file {json_file_path} does not exist."
                     )
-
-                current_output_dir = output_dir
-                os.chdir(original_working_dir)
-
                 (args,) = parser.parse_json_file(json_file_path)[:1]
-
-                os.chdir(current_output_dir)
             else:
                 (args,) = parser.parse_args_into_dataclasses()[:1]
 
+            output_dir, original_working_dir = _init_logging_directory(
+                logging_dir, init_working_dir
+            )
+
+            # Save output
+            if log_to_file:
+                # TODO Make configurable
+                output_file_name = "output.log"
+                output_file_path = join(output_dir, output_file_name)
+                bind_logger_to_stdout(output_file_path)
+
+                # output_file_name = "output.err"
+                # output_file_path = join(output_dir, output_file_name)
+                # bind_logger_to_stderr(output_file_path)
+
             # Save parameters
             if save_parameters:
+                # TODO Make configurable
                 parameters_file_name = "parameters.json"
                 parameters_file_path = join(output_dir, parameters_file_name)
                 with open(parameters_file_path, "w") as f:
