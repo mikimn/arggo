@@ -1,6 +1,8 @@
 # <img src="./docs/assets/ship.png" width="50" /> Arggo
 > The no-brainer Python package for experiment management
 
+![Coverage](docs/assets/coverage.svg)
+
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
 

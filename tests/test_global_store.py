@@ -16,6 +16,7 @@ class TestGlobalStore:
         _global_store().clear()
 
     def test_no_init_get_throws_assert_error(self):
+        """Calling global_store_get() without init() throws an AssertionError"""
         with pytest.raises(AssertionError):
             _ = global_store_get(GLOBAL_STORE_KEY, "key")
 

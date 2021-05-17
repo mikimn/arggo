@@ -22,6 +22,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
@@ -30,4 +31,47 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          python -m pytest
+          python -m pytest --cov=arggo
+      - name: Update Coverage
+        uses: EndBug/add-and-commit@v7 # You can change this to use a specific version
+        run: |
+          coverage-badge -o docs/assets/coverage.svg
+        with:
+          # The arguments for the `git add` command (see the paragraph below for more info)
+          # Default: '.'
+          add: 'docs/assets/coverage.svg'
+
+  #        # The local path to the directory where your repository is located. You should use actions/checkout first to set it up
+  #        # Default: '.'
+  #        cwd: './path/to/the/repo'
+
+          # Determines the way the action fills missing author name and email. Three options are available:
+          # - github_actor -> UserName <UserName@users.noreply.github.com>
+          # - user_info -> Your Display Name <your-actual@email.com>
+          # - github_actions -> github-actions <email associated with the github logo>
+          # Default:
+          default_author: user_info
+
+          # The message for the commit
+          # Default: 'Commit from GitHub Actions (name of the workflow)'
+          message: '[MAINTENANCE] Update coverage badge'
+
+          # The flag used on the pull strategy. Use NO-PULL to avoid the action pulling at all.
+          # Default: '--no-rebase'
+          # pull_strategy: 'NO-PULL or --no-rebase or --no-ff or --rebase'
+
+          # Whether to push the commit and, if any, its tags to the repo. It can also be used to set the git push arguments (see the paragraph below for more info)
+          # Default: true
+          # push: true
+
+          # The arguments for the `git rm` command (see the paragraph below for more info)
+          # Default: ''
+          # remove: './dir/old_file.js'
+
+          # Whether to use the --signoff option on `git commit` (only `true` and `false` are accepted)
+          # Default: false
+          # signoff: true
+
+          # Arguments for the git tag command (the tag name always needs to be the first word not preceded by an hyphen)
+          # Default: ''
+          # tag: 'v1.0.0 --force'
