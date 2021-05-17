@@ -14,6 +14,7 @@
 
 import dataclasses
 import json
+import re
 import sys
 from argparse import (
     ArgumentParser,
@@ -70,6 +71,8 @@ def _handle_kwargs_list(field, kwargs):
     ), "{} cannot be a List of mixed types".format(field.name)
     if field.default_factory is not dataclasses.MISSING:
         kwargs["default"] = field.default_factory()
+    elif field.default is dataclasses.MISSING:
+        kwargs["required"] = True
     return kwargs
 
 
@@ -92,8 +95,9 @@ def _handle_kwargs_enum(field, kwargs):
             raise ArgumentTypeError(msg.format(arg, choices))
 
     kwargs["type"] = parse_argument
-    kwargs["choices"] = [x.value for x in field.type] + [
-        x.name.lower() for x in field.type
+    kwargs["choices"] = [x.value for x in field.type]
+    kwargs["choices"] += [
+        x.name.lower() for x in field.type if x.name.lower() not in kwargs["choices"]
     ]
     if field.default is not dataclasses.MISSING:
         kwargs["default"] = field.default
@@ -132,7 +136,8 @@ class DataClassArgumentParser(ArgumentParser):
         for dtype in self.dataclass_types:
             self._add_dataclass_arguments(dtype)
 
-    def _cleanup_complex_types(self, field):
+    @staticmethod
+    def _cleanup_complex_types(field):
         typestring = str(field.type)
         for prim_type in (int, float, str):
             for collection in (List,):
@@ -186,8 +191,9 @@ class DataClassArgumentParser(ArgumentParser):
 
                 # Hack because type=bool in argparse does not behave as we want.
                 kwargs = _handle_kwargs_bool(field, kwargs)
-            elif hasattr(field.type, "__origin__") and issubclass(
-                field.type.__origin__, List
+            elif (
+                hasattr(field.type, "__origin__")
+                and re.search(r"^typing\.List\[(.*)\]$", str(field.type)) is not None
             ):
                 # Handle list types (+ generics)
                 kwargs = _handle_kwargs_list(field, kwargs)

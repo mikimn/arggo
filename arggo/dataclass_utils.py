@@ -1,6 +1,6 @@
 from dataclasses import field, MISSING
 from enum import Enum
-from typing import List, Any, Type
+from typing import List, Any, Type, Callable
 
 
 # noinspection PyShadowingBuiltins
@@ -32,14 +32,5 @@ def parser_field(
     )
 
 
-def enum_field(
-    enum_cls: Type[Enum],
-    default=MISSING,
-    default_factory=MISSING,
-    help: str = None,
-    *args,
-    **kwargs
-):
-    return parser_field(
-        default=default, default_factory=default_factory, help=help, *args, **kwargs
-    )
+def mapped_field(mapper: Callable[[Any], Any], *args, **kwargs):
+    return parser_field(*args, **kwargs, metadata={"type": mapper})
