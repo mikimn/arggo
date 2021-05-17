@@ -5,6 +5,7 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import is_dataclass
 from os.path import join, abspath
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence
+from typing_extensions import Protocol
 
 from ._internal.global_store import GlobalStore
 from .environment.workdir import Workdir
@@ -15,7 +16,10 @@ _PARAMETERS_FILE_NAME = "parameters.json"
 _OUTPUT_FILE_NAME = "output.log"
 _METADATA_KEY = "__arggo"
 
-TaskFunction = Union[Callable[[Any], Any], Callable[[], Any]]
+
+class TaskFunction(Protocol):
+    def __call__(self, a: Any, b: Any, **kwargs) -> Any:
+        ...
 
 
 class _MetaHelpAction(argparse.Action):
@@ -67,13 +71,10 @@ def arggo(
 
     def main_decorator(task_function: TaskFunction) -> Callable[[], None]:
         @functools.wraps(task_function)
-        def decorated_main(args_passthrough: Optional[Any] = None) -> Any:
+        def decorated_main(*args_passed, **kwargs_passed) -> Any:
             type_hints = list(get_type_hints(task_function).items())
-            if args_passthrough is not None:
-                return task_function(args_passthrough)
-
             if len(type_hints) == 0:
-                return task_function()
+                return task_function(*args_passed, **kwargs_passed)
 
             parser_argument_name, parser_argument_type_hint = type_hints[
                 parser_argument_index
@@ -139,7 +140,7 @@ def arggo(
                         dataclass_to_json(args, {_METADATA_KEY: additional_metadata})
                     )
 
-            task_function(args)
+            task_function(args, *args_passed, **kwargs_passed)
 
         return decorated_main
 

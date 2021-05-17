@@ -268,7 +268,7 @@ class DataClassArgumentParser(ArgumentParser):
         else:
             if remaining_args:
                 raise ValueError(
-                    f"Some specified arguments are not used by the HfArgumentParser: {remaining_args}"
+                    f"Some specified arguments are not used by the DataClassArgumentParser: {remaining_args}"
                 )
 
             return (*outputs,)
