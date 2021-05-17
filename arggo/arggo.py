@@ -2,7 +2,7 @@ import argparse
 import functools
 import os
 from argparse import ArgumentParser, Namespace
-from dataclasses import is_dataclass, asdict
+from dataclasses import is_dataclass
 from os.path import join, abspath
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence
 
@@ -30,9 +30,9 @@ class _MetaHelpAction(argparse.Action):
 
 def _init_logging_directory(logging_dir: str, init_working_dir: bool):
     if init_working_dir:
-        from .utils import working_dir_init
+        from .environment.workdir import init_workdir
 
-        output_dir, original_working_dir = working_dir_init(logging_dir=logging_dir)
+        output_dir, original_working_dir = init_workdir(logging_dir=logging_dir)
     else:
         original_working_dir = os.getcwd()
         output_dir = join(original_working_dir, logging_dir)
