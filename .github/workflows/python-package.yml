@@ -32,7 +32,7 @@ jobs:
       - name: Test with pytest
         run: |
           python -m pytest --cov=arggo
-          coverage-badge -o docs/assets/coverage.svg
+          coverage-badge -o docs/assets/coverage.svg -f
       - name: Update Coverage
         uses: EndBug/add-and-commit@v7 # You can change this to use a specific version
         with:
