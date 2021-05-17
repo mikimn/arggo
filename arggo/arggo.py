@@ -6,6 +6,8 @@ from dataclasses import is_dataclass
 from os.path import join, abspath
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence
 
+from ._internal.global_store import GlobalStore
+from .environment.workdir import Workdir
 from .logger import bind_logger_to_stdout
 from .parser import DataClassArgumentParser, dataclass_to_json
 
@@ -13,7 +15,7 @@ _PARAMETERS_FILE_NAME = "parameters.json"
 _OUTPUT_FILE_NAME = "output.log"
 _METADATA_KEY = "__arggo"
 
-TaskFunction = Callable[[Any], Any]
+TaskFunction = Union[Callable[[Any], Any], Callable[[], Any]]
 
 
 class _MetaHelpAction(argparse.Action):
@@ -28,17 +30,17 @@ class _MetaHelpAction(argparse.Action):
         parser.exit()
 
 
-def _init_logging_directory(logging_dir: str, init_working_dir: bool):
-    if init_working_dir:
-        from .environment.workdir import init_workdir
+def _init_work_directory(logging_dir: str, init_working_dir: bool) -> Workdir:
+    from .environment.workdir import Workdir
 
-        output_dir, original_working_dir = init_workdir(logging_dir=logging_dir)
+    workdir = Workdir(GlobalStore())
+    if init_working_dir:
+        workdir.initialize(logging_dir)
     else:
-        original_working_dir = os.getcwd()
-        output_dir = join(original_working_dir, logging_dir)
+        output_dir = join(workdir.workdir(), logging_dir)
         os.makedirs(output_dir, exist_ok=True)
 
-    return output_dir, original_working_dir
+    return workdir
 
 
 def _try_discover_parameters_file(path: str):
@@ -66,10 +68,13 @@ def arggo(
     def main_decorator(task_function: TaskFunction) -> Callable[[], None]:
         @functools.wraps(task_function)
         def decorated_main(args_passthrough: Optional[Any] = None) -> Any:
+            type_hints = list(get_type_hints(task_function).items())
             if args_passthrough is not None:
                 return task_function(args_passthrough)
 
-            type_hints = list(get_type_hints(task_function).items())
+            if len(type_hints) == 0:
+                return task_function()
+
             parser_argument_name, parser_argument_type_hint = type_hints[
                 parser_argument_index
             ]
@@ -105,9 +110,8 @@ def arggo(
             else:
                 (args,) = parser.parse_args_into_dataclasses()[:1]
 
-            output_dir, original_working_dir = _init_logging_directory(
-                logging_dir, init_working_dir
-            )
+            workdir = _init_work_directory(logging_dir, init_working_dir)
+            output_dir = workdir.workdir()
 
             # Save output
             if log_to_file:
