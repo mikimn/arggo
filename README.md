@@ -1,8 +1,8 @@
-# <img src="./docs/assets/ship.png" width="50" /> Arggo
-> The no-brainer Python package for experiment management
-
+# :ship: Arggo
 ![Coverage](docs/assets/coverage.svg)
 ![Build Status](https://github.com/mikimn/arggo/actions/workflows/python-package.yml/badge.svg)
+![PyPI version](https://badge.fury.io/py/arggo.svg)
+> The no-brainer Python package for experiment management
 
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
