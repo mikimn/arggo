@@ -109,7 +109,9 @@ def _arggo_annotation(
                 )
                 (args,) = parser.parse_json_file(reproduce_from_file)[:1]
             else:
-                (args,) = parser.parse_args_into_dataclasses()[:1]
+                (args,) = parser.parse_args_into_dataclasses(
+                    return_remaining_strings=True
+                )[:1]
 
             workdir = _init_work_directory(logging_dir, init_working_dir)
             output_dir = workdir.workdir()
