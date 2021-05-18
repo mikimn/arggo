@@ -7,13 +7,18 @@
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
 
-Arggo is a Python library for managing experiment runs in a clean and elegant manner.
+:ship: Arggo is a Python library for managing experiment runs in a clean and elegant manner.
 
 Core features:
-* Dataclass-powered automatic argument parsing
-* Automatic directory creation for different runs
+* :bar_chart: Dataclass-powered automatic argument parsing
+* :football: No more passing `args` around. `arggo.consume` makes it easy for every function to consume argument objects!
+* :arrows_counterclockwise: Reproducibility - re-run previously saved :ship: Arggo runs with a single command.
+* :lock: Isolation - :ship: Arggo creates a new running directory for each run by default.
 
-Arggo is largely inspired by
+Upcoming:
+* :surfer: Versatility – Arggo is plugin-based, and all behaviors can be controlled for, configured, or disabled.
+
+:ship: Arggo is largely inspired by
 [Hydra](https://hydra.cc/) and the `HfArgumentParser` utility from
 [🤗 Transformers](https://github.com/huggingface/transformers).
 
@@ -102,6 +107,8 @@ Greetings for the 1st time, John!
 Greetings for the 2nd time, John!
 Greetings for the 3rd time, John!
 ```
+
+The `consume` and `configure()` decorators work for any function, and guarantee that the same objects are provided each time.
 
 ## Features
 
