@@ -45,10 +45,10 @@ class Arguments:
 Then, annotate your main function to magically receive an arguments class :
 
 ```python
-from arggo import _arggo_annotation
+import arggo
 
 
-@_arggo_annotation()
+@arggo.consume
 def main(args: Arguments):
     if args.should_greet:
         print(f"Greetings, {args.name}!")
@@ -63,6 +63,45 @@ Greetings, John!
 ```
 
 That's it!
+
+## Configuration
+
+You can configure Arggo by using `arggo.configure()` instead, like so:
+
+```python
+import arggo
+
+
+@arggo.configure(
+    parser_argument_index=1,
+    logging_dir="my_logs"
+)
+def greet_user(count: int, args: Arguments):
+    numeral = {1: "st", 2: "nd", 3: "rd"}
+    numeral = numeral[count] if count in numeral else 'th'
+    if args.should_greet:
+        print(f"Greetings for the {count}{numeral} time, {args.name}!")
+
+
+def main():
+    for i in range(4):
+        greet_user(i)
+
+
+main()
+```
+
+Running
+```shell script
+python main.py --name John
+```
+Outputs
+```text
+Greetings for the 0th time, John!
+Greetings for the 1st time, John!
+Greetings for the 2nd time, John!
+Greetings for the 3rd time, John!
+```
 
 ## Features
 

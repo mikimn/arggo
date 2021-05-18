@@ -29,14 +29,14 @@ class ComplexArguments:
 
 class TestSimpleAnnotation:
     def test_function_no_arguments(self):
-        @arggo.simple
+        @arggo.consume
         def decorated():
             return 1
 
         assert decorated() == 1
 
     def test_function_unrelated_arguments(self):
-        @arggo.simple
+        @arggo.consume
         def decorated(_: SimpleArguments, x: int, y: int):
             return x * y
 
@@ -45,7 +45,7 @@ class TestSimpleAnnotation:
     def test_function_multiple_dataclasses(self):
         args = SimpleArguments(just_a_string=", World!")
 
-        @arggo.simple
+        @arggo.consume
         def decorated(args1: SimpleArguments, args2: SimpleArguments):
             print("Hello!")
             return args1.just_a_string + args2.just_a_string
@@ -53,12 +53,19 @@ class TestSimpleAnnotation:
         assert decorated(args) == "Hello, World!"
 
     def test_expected_dataclass_raises_value_error(self):
-        @arggo.simple
+        @arggo.consume
         def decorated(x: int):
             return x + 5
 
         with pytest.raises(ValueError):
             decorated()
+
+    def test_dataclass_in_different_index(self):
+        @arggo.configure(parser_argument_index=1)
+        def decorated(x: int, args: SimpleArguments):
+            return f"{args.just_a_string} = {x}"
+
+        assert decorated(5) == "Hello = 5"
 
 
 class TestConfigureAnnotation:

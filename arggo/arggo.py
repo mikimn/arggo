@@ -140,7 +140,12 @@ def _arggo_annotation(
                         dataclass_to_json(args, {_METADATA_KEY: additional_metadata})
                     )
 
-            return task_function(args, *args_passed, **kwargs_passed)
+            new_args_passed = [
+                *args_passed[:parser_argument_index],
+                args,
+                *args_passed[parser_argument_index:],
+            ]
+            return task_function(*new_args_passed, **kwargs_passed)
 
         return decorated_main
 
@@ -148,4 +153,4 @@ def _arggo_annotation(
 
 
 configure = _arggo_annotation
-simple = _arggo_annotation()
+consume = _arggo_annotation()
