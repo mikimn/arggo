@@ -2,6 +2,7 @@
 > The no-brainer Python package for experiment management
 
 ![Coverage](docs/assets/coverage.svg)
+![Build Status](https://github.com/mikimn/arggo/actions/workflows/python-package.yml/badge.svg)
 
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
