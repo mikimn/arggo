@@ -43,10 +43,12 @@ class Arguments:
 ```
 
 Then, annotate your main function to magically receive an arguments class :
-```python
-from arggo import arggo
 
-@arggo()
+```python
+from arggo import _arggo_annotation
+
+
+@_arggo_annotation()
 def main(args: Arguments):
     if args.should_greet:
         print(f"Greetings, {args.name}!")

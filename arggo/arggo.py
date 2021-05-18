@@ -60,7 +60,7 @@ def _try_discover_parameters_file(path: str):
     raise FileNotFoundError(f"Parameters file {path} does not exist")
 
 
-def arggo(
+def _arggo_annotation(
     parser_argument_index=0, logging_dir="logs", init_working_dir=True
 ) -> Callable[[Any], Any]:
     """Decorate a main method with this decorator to enable Arggo
@@ -140,8 +140,12 @@ def arggo(
                         dataclass_to_json(args, {_METADATA_KEY: additional_metadata})
                     )
 
-            task_function(args, *args_passed, **kwargs_passed)
+            return task_function(args, *args_passed, **kwargs_passed)
 
         return decorated_main
 
     return main_decorator
+
+
+configure = _arggo_annotation
+simple = _arggo_annotation()

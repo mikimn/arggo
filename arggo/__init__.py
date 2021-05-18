@@ -1,1 +1,1 @@
-from .arggo import arggo
+from .arggo import simple, configure
