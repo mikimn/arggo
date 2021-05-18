@@ -1,1 +1,1 @@
-from .arggo import consume, configure
+from .core import consume, configure
