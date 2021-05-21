@@ -1,14 +1,28 @@
 import sys
 
+from arggo._internal.global_store import GlobalStore
 
-class _Logger(object):
-    def __init__(self, output_file, write_mode="a"):
-        self.terminal = sys.stdout
+
+class FileLogger:
+    _KEY_BOUND = "file_logger_bound"
+
+    def __init__(self, global_store: GlobalStore, output_file, write_mode="a"):
+        self.gs = global_store
+        self.terminal = None
         assert write_mode in {"w", "a"}
         self.log = open(output_file, write_mode)
 
+    def bind(
+        self,
+    ):
+        self.terminal = sys.stdout
+        if not self.gs.get(FileLogger._KEY_BOUND, False):
+            sys.stdout = self
+            self.gs.put(FileLogger._KEY_BOUND, True)
+
     def write(self, message):
-        self.terminal.write(message)
+        if self.terminal is not None:
+            self.terminal.write(message)
         self.log.write(message)
 
     def flush(self):
@@ -19,14 +33,3 @@ class _Logger(object):
 
     def original_stdout(self):
         return self.terminal
-
-
-def bind_logger_to_stdout(output_file):
-    sys.stdout = _Logger(output_file)
-    return sys.stdout
-
-
-def bind_logger_to_stderr(output_file):
-    # Not coloring?
-    sys.stderr = _Logger(output_file)
-    return sys.stderr

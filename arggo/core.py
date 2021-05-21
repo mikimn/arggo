@@ -17,7 +17,7 @@ else:
 
 from ._internal.global_store import GlobalStore
 from .environment.workdir import Workdir
-from .logger import bind_logger_to_stdout
+from .logger import FileLogger
 from .parser import DataClassArgumentParser, dataclass_to_json
 
 _PARAMETERS_FILE_NAME = "parameters.json"
@@ -53,6 +53,12 @@ def _init_work_directory(logging_dir: str, init_working_dir: bool) -> Workdir:
         os.makedirs(output_dir, exist_ok=True)
 
     return workdir
+
+
+def _init_logging_to_file(output_dir: str, output_file_name: str = _OUTPUT_FILE_NAME):
+    output_file_path = join(output_dir, output_file_name)
+    file_logger = FileLogger(GlobalStore(), output_file_path)
+    file_logger.bind()
 
 
 def _try_discover_parameters_file(path: str):
@@ -146,10 +152,7 @@ def _main_annotation(
 
             # Save output
             if log_to_file:
-                # TODO Make configurable
-                output_file_name = _OUTPUT_FILE_NAME
-                output_file_path = join(output_dir, output_file_name)
-                bind_logger_to_stdout(output_file_path)
+                _init_logging_to_file(output_dir)
 
                 # output_file_name = "output.err"
                 # output_file_path = join(output_dir, output_file_name)
@@ -164,6 +167,7 @@ def _main_annotation(
                     additional_metadata["reproduced_from"] = abspath(
                         reproduce_from_file
                     )
+                additional_metadata["executable"] = sys.executable
                 additional_metadata["command"] = " ".join(sys.argv)
                 for plugin in plugins:
                     dump = plugin.parameters_dump()
