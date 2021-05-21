@@ -70,6 +70,7 @@ class Workdir:
         os.chdir(self.original_workdir())
         self.gs.delete(Workdir._KEY_CURRENT_WORKDIR)
         self.gs.delete(Workdir._KEY_ORIGINAL_WORKDIR)
+        self.gs.delete(Workdir._KEY_INITIALIZED)
 
 
 def init_workdir(
