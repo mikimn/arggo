@@ -1,11 +1,19 @@
 import argparse
 import functools
 import os
+import sys
 from argparse import ArgumentParser, Namespace
 from dataclasses import is_dataclass
 from os.path import join, abspath
-from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence
-from typing_extensions import Protocol
+from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence, List
+
+from .integration.conda import CondaPlugin
+from .plugin import Plugin
+
+if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 from ._internal.global_store import GlobalStore
 from .environment.workdir import Workdir
@@ -60,14 +68,44 @@ def _try_discover_parameters_file(path: str):
     raise FileNotFoundError(f"Parameters file {path} does not exist")
 
 
+def _meta_arguments():
+    meta_parser = argparse.ArgumentParser(add_help=False)
+
+    meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
+    meta_parser.add_argument(
+        "--arggo_reproduce",
+        type=str,
+        required=False,
+        default=None,
+        help=f"Use this argument to reproduce a configuration from a previously saved run. Must be either "
+        f"a directory containing a {_PARAMETERS_FILE_NAME} file, or a path to such a file",
+    )
+    (meta_args,) = meta_parser.parse_known_args()[:1]
+    return meta_args
+
+
+def _load_default_plugins():
+    return [CondaPlugin()]
+
+
 def _main_annotation(
-    parser_argument_index=0, logging_dir="logs", init_working_dir=True
+    parser_argument_index=0,
+    logging_dir="logs",
+    init_working_dir=True,
+    plugins: List[Plugin] = None,
+    parameters_file_name=_PARAMETERS_FILE_NAME,
 ) -> Callable[[Any], Any]:
     """Decorate a main method with this decorator to enable Arggo
 
     :param parser_argument_index: The index of the argument which will be our dataclass (default: 0). This is useful
     when the main method receives more than one argument in a non-standard ordering.
     """
+    if plugins is None:
+        plugins = []
+    # Default plugins
+    for default_plugin in _load_default_plugins():
+        if default_plugin not in plugins:
+            plugins.append(default_plugin)
 
     def main_decorator(task_function: TaskFunction) -> Callable[[], None]:
         @functools.wraps(task_function)
@@ -90,18 +128,8 @@ def _main_annotation(
             log_to_file = True
 
             parser = DataClassArgumentParser(parser_argument_type_hint)
-            meta_parser = argparse.ArgumentParser(add_help=False)
+            meta_args = _meta_arguments()
 
-            meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
-            meta_parser.add_argument(
-                "--arggo_reproduce",
-                type=str,
-                required=False,
-                default=None,
-                help=f"Use this argument to reproduce a configuration from a previously saved run. Must be either "
-                f"a directory containing a {_PARAMETERS_FILE_NAME} file, or a path to such a file",
-            )
-            (meta_args,) = meta_parser.parse_known_args()[:1]
             reproduce_from_file = None
             if meta_args and meta_args.arggo_reproduce is not None:
                 reproduce_from_file = _try_discover_parameters_file(
@@ -130,13 +158,18 @@ def _main_annotation(
             # Save parameters
             if save_parameters:
                 # TODO Make configurable
-                parameters_file_name = _PARAMETERS_FILE_NAME
                 parameters_file_path = join(output_dir, parameters_file_name)
                 additional_metadata = dict()
                 if reproduce_from_file is not None:
                     additional_metadata["reproduced_from"] = abspath(
                         reproduce_from_file
                     )
+                additional_metadata["command"] = " ".join(sys.argv)
+                for plugin in plugins:
+                    dump = plugin.parameters_dump()
+                    if dump is not None:
+                        additional_metadata[plugin.name] = dump
+
                 with open(parameters_file_path, "w") as f:
                     f.write(
                         dataclass_to_json(args, {_METADATA_KEY: additional_metadata})

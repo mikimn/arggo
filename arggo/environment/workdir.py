@@ -34,6 +34,7 @@ class DefaultDirectoryStrategy(DirectoryStrategy):
 class Workdir:
     _KEY_ORIGINAL_WORKDIR = "original_workdir"
     _KEY_CURRENT_WORKDIR = "current_workdir"
+    _KEY_INITIALIZED = "workdir_initialized"
 
     def __init__(
         self, global_store: GlobalStore, strategy: DirectoryStrategy = None
@@ -44,11 +45,20 @@ class Workdir:
             strategy = DefaultDirectoryStrategy()
         self.strategy = strategy
 
+    def _should_initialize(self):
+        return not self.gs.get(Workdir._KEY_INITIALIZED, False)
+
+    def _mark_initialized(self):
+        self.gs.put(Workdir._KEY_INITIALIZED, True)
+
     def initialize(self, root_directory: str) -> str:
-        new_workdir, original_workdir = init_workdir(root_directory, self.strategy)
-        self.gs.put(Workdir._KEY_CURRENT_WORKDIR, new_workdir)
-        self.gs.put(Workdir._KEY_ORIGINAL_WORKDIR, original_workdir)
-        return new_workdir
+        if self._should_initialize():
+            new_workdir, original_workdir = init_workdir(root_directory, self.strategy)
+            self.gs.put(Workdir._KEY_CURRENT_WORKDIR, new_workdir)
+            self.gs.put(Workdir._KEY_ORIGINAL_WORKDIR, original_workdir)
+            self._mark_initialized()
+            return new_workdir
+        return self.workdir()
 
     def workdir(self):
         return self.gs.get(Workdir._KEY_CURRENT_WORKDIR, os.getcwd())
