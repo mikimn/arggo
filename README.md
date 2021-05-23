@@ -26,6 +26,7 @@ Upcoming:
 
 * [Installation](#installation)
 * [Getting Started](#getting-started)
+* [Usage](#usage)
 * [Features](#features)
 
 ## Installation
@@ -69,7 +70,9 @@ Greetings, John!
 
 That's it!
 
-## Configuration
+## Usage
+
+### Configuration
 
 You can configure Arggo by using `arggo.configure()` instead, like so:
 
@@ -110,13 +113,10 @@ Greetings for the 3rd time, John!
 
 The `consume` and `configure()` decorators work for any function, and guarantee that the same objects are provided each time.
 
-## Features
-
-:construction: To-do list:
-
-* [ ] Proof-of-concept for dataclass arguments
-* [ ] Automatic working directory management
-* [ ] Service integration
+**Note**: Arggo relies on the first `configure()` it uses to load everything, initialize the work directory and
+configure parametes. Future versions will make `consume` automatically find
+the appropriate type parameter to inject the arguments object into, and consequently
+`configure()` will throw an error when used more than once.
 
 ## Contributing
 
