@@ -4,9 +4,13 @@ import os
 import sys
 from argparse import ArgumentParser, Namespace
 from dataclasses import is_dataclass
-from os.path import join, abspath
+from os.path import join
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence, List
+from rich.console import Console
 
+console = Console()
+
+from .experiment import NewExperiment
 from .integration.conda import CondaPlugin
 from .plugin import Plugin
 
@@ -18,11 +22,13 @@ else:
 from ._internal.global_store import GlobalStore
 from .environment.workdir import Workdir
 from .logger import FileLogger
-from .parser import DataClassArgumentParser, dataclass_to_json
+from .parser import DataClassArgumentParser
+from interactive_argparse import InteractiveArgumentParser
 
-_PARAMETERS_FILE_NAME = "parameters.json"
 _OUTPUT_FILE_NAME = "output.log"
-_METADATA_KEY = "__arggo"
+
+
+global_store = GlobalStore()
 
 
 class TaskFunction(Protocol):
@@ -42,11 +48,14 @@ class _MetaHelpAction(argparse.Action):
         parser.exit()
 
 
-def _init_work_directory(logging_dir: str, init_working_dir: bool) -> Workdir:
-    from .environment.workdir import Workdir
+def _init_work_directory(
+    logging_dir: str, tag: str = None, init_working_dir: bool = True
+) -> Workdir:
+    from .environment.workdir import get_workdir
 
-    workdir = Workdir(GlobalStore())
+    workdir = get_workdir()
     if init_working_dir:
+        logging_dir = logging_dir if tag is None else join(logging_dir, tag)
         workdir.initialize(logging_dir)
     else:
         output_dir = join(workdir.workdir(), logging_dir)
@@ -57,34 +66,26 @@ def _init_work_directory(logging_dir: str, init_working_dir: bool) -> Workdir:
 
 def _init_logging_to_file(output_dir: str, output_file_name: str = _OUTPUT_FILE_NAME):
     output_file_path = join(output_dir, output_file_name)
-    file_logger = FileLogger(GlobalStore(), output_file_path)
+    file_logger = FileLogger(global_store, output_file_path)
     file_logger.bind()
 
 
-def _try_discover_parameters_file(path: str):
-    if os.path.isdir(path):
-        file_name = _PARAMETERS_FILE_NAME
-        if os.path.exists(join(path, file_name)):
-            return join(path, file_name)
-        raise FileNotFoundError(
-            f"Could not find a {file_name} file in {path}. Make sure this is a valid directory."
-        )
-    if os.path.exists(path):
-        return path
-    raise FileNotFoundError(f"Parameters file {path} does not exist")
-
-
 def _meta_arguments():
-    meta_parser = argparse.ArgumentParser(add_help=False)
+    meta_parser = ArgumentParser(add_help=False)
 
     meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
+    meta_parser.add_argument(
+        "--arggo_interactive",
+        action="store_true",
+        help="Use this meta-argument to accept program arguments in an interactive mode",
+    )
     meta_parser.add_argument(
         "--arggo_reproduce",
         type=str,
         required=False,
         default=None,
         help=f"Use this argument to reproduce a configuration from a previously saved run. Must be either "
-        f"a directory containing a {_PARAMETERS_FILE_NAME} file, or a path to such a file",
+        f"a directory containing a parameters file, or a path to such a file",
     )
     (meta_args,) = meta_parser.parse_known_args()[:1]
     return meta_args
@@ -99,7 +100,6 @@ def _main_annotation(
     logging_dir="logs",
     init_working_dir=True,
     plugins: List[Plugin] = None,
-    parameters_file_name=_PARAMETERS_FILE_NAME,
 ) -> Callable[[Any], Any]:
     """Decorate a main method with this decorator to enable Arggo
 
@@ -133,55 +133,55 @@ def _main_annotation(
             save_parameters = True
             log_to_file = True
 
-            parser = DataClassArgumentParser(parser_argument_type_hint)
             meta_args = _meta_arguments()
+            parser = global_store.get("parser", None)
+            update_parser = False
+            # TODO Proper caching
+            if not parser:
+                parser = DataClassArgumentParser(parser_argument_type_hint)
+                update_parser = True
 
-            reproduce_from_file = None
-            if meta_args and meta_args.arggo_reproduce is not None:
-                reproduce_from_file = _try_discover_parameters_file(
-                    meta_args.arggo_reproduce
-                )
-                (args,) = parser.parse_json_file(reproduce_from_file)[:1]
+                if meta_args and meta_args.arggo_interactive:
+                    console.print(
+                        "[bold cyan] Running with interactive mode [/bold cyan]"
+                    )
+                    parser = InteractiveArgumentParser(parser)
+
+            if update_parser:
+                global_store.put("parser", parser)
+
+                if meta_args and meta_args.arggo_reproduce is not None:
+                    experiment = NewExperiment.from_reproduced(
+                        parser, meta_args.arggo_reproduce
+                    )
+                else:
+                    # `InteractiveArgumentParser` only prompts when it sees no left-over
+                    # CLI args of its own; arggo's `--arggo_interactive` meta-flag would
+                    # otherwise count as one, so force it to treat the call as bare.
+                    interactive_args = (
+                        [] if meta_args and meta_args.arggo_interactive else None
+                    )
+                    experiment = NewExperiment.from_arguments(
+                        parser, args=interactive_args
+                    )
+                global_store.put("experiment", experiment)
             else:
-                (args,) = parser.parse_args_into_dataclasses(
-                    return_remaining_strings=True
-                )[:1]
+                experiment = global_store.get("experiment")
 
-            workdir = _init_work_directory(logging_dir, init_working_dir)
+            workdir = _init_work_directory(logging_dir, None, init_working_dir)
             output_dir = workdir.workdir()
 
             # Save output
             if log_to_file:
                 _init_logging_to_file(output_dir)
 
-                # output_file_name = "output.err"
-                # output_file_path = join(output_dir, output_file_name)
-                # bind_logger_to_stderr(output_file_path)
-
             # Save parameters
             if save_parameters:
-                # TODO Make configurable
-                parameters_file_path = join(output_dir, parameters_file_name)
-                additional_metadata = dict()
-                if reproduce_from_file is not None:
-                    additional_metadata["reproduced_from"] = abspath(
-                        reproduce_from_file
-                    )
-                additional_metadata["executable"] = sys.executable
-                additional_metadata["command"] = " ".join(sys.argv)
-                for plugin in plugins:
-                    dump = plugin.parameters_dump()
-                    if dump is not None:
-                        additional_metadata[plugin.name] = dump
-
-                with open(parameters_file_path, "w") as f:
-                    f.write(
-                        dataclass_to_json(args, {_METADATA_KEY: additional_metadata})
-                    )
+                experiment.save_json(output_dir, plugins)
 
             new_args_passed = [
                 *args_passed[:parser_argument_index],
-                args,
+                experiment.stripped_parameters,
                 *args_passed[parser_argument_index:],
             ]
             return task_function(*new_args_passed, **kwargs_passed)

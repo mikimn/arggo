@@ -6,3 +6,4 @@ coverage-badge==1.0.1
 twine
 pre-commit
 setuptools
+wandb==0.10.33

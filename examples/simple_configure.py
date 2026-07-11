@@ -1,9 +1,4 @@
-import os
 from dataclasses import dataclass
-import sys
-
-sys.path.append(os.getcwd())
-sys.path.append("../")
 import arggo
 from arggo.dataclass_utils import parser_field
 
