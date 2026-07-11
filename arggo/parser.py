@@ -179,7 +179,7 @@ class DataClassArgumentParser(ArgumentParser):
                 )
 
             field = self._cleanup_complex_types(field)
-            if field.type is bool or field.type is Optional[bool]:
+            if field.type is bool or field.type == Optional[bool]:
                 if field.default is True:
                     self.add_argument(
                         f"--no_{field.name}",
