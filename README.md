@@ -7,11 +7,11 @@
 :warning: This library is still in early development. We welcome contributors and early feedback :construction:
 ___
 
-:ship: Arggo is a Python library for managing experiment runs in a clean and elegant manner.
+:ship: Arggo is a Python toolkit for managing reproducible runs in a clean and elegant manner.
 
 Core features:
-* :bar_chart: Dataclass-powered automatic argument parsing
-* :football: No more passing `args` around. `arggo.consume` makes it easy for every function to consume argument objects!
+* :bar_chart: Automatic dataclass-powered argument parsing and injection.
+* :computer: Powerful CLI for run management and bootstrapping
 * :arrows_counterclockwise: Reproducibility - re-run previously saved :ship: Arggo runs with a single command.
 * :lock: Isolation - :ship: Arggo creates a new running directory for each run by default.
 
@@ -117,6 +117,54 @@ The `consume` and `configure()` decorators work for any function, and guarantee 
 configure parametes. Future versions will make `consume` automatically find
 the appropriate type parameter to inject the arguments object into, and consequently
 `configure()` will throw an error when used more than once.
+
+### Meta-arguments
+
+Arggo attaches meta-arguments to each script, allowing for some extra functionality.
+To view all possible meta-arguments, run your script with the `--arggo_help` flag
+```shell
+python main.py --arggo_help
+```
+
+#### Interactive Runs
+
+You can provide arguments to a program interactively by supplying the `--arggo_interactive` flag:
+```shell
+python main.py --arggo_help
+```
+
+### Command Line Interface
+
+Arggo powers a CLI for many useful actions. To view more information, run
+```shell
+arggo-cli --help
+```
+
+#### Creating a New Experiment
+
+```shell
+arggo-cli experiment create <experiment_name>
+```
+
+This command automatically creates a starter file `<experiment_name>.py`
+
+#### Reproducing an Existing Experiment
+
+To reproduce results of a previous experiment run, type
+```shell
+arggo-cli experiment reproduce <experiment_name>
+```
+
+This looks for any experiments in the `logs/` folder, and allows you to interactively choose which one to reproduce.
+
+## Development
+
+### Running tests
+
+To run all tests:
+```shell
+python -m pytest --cov=arggo
+```
 
 ## Contributing
 
