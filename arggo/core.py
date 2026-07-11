@@ -6,6 +6,9 @@ from argparse import ArgumentParser, Namespace
 from dataclasses import is_dataclass
 from os.path import join
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence, List
+from rich.console import Console
+
+console = Console()
 
 from .experiment import NewExperiment
 from .integration.conda import CondaPlugin
@@ -20,6 +23,7 @@ from ._internal.global_store import GlobalStore
 from .environment.workdir import Workdir
 from .logger import FileLogger
 from .parser import DataClassArgumentParser
+from interactive_argparse import InteractiveArgumentParser
 
 _OUTPUT_FILE_NAME = "output.log"
 
@@ -70,6 +74,11 @@ def _meta_arguments():
     meta_parser = ArgumentParser(add_help=False)
 
     meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
+    meta_parser.add_argument(
+        "--arggo_interactive",
+        action="store_true",
+        help="Use this meta-argument to accept program arguments in an interactive mode",
+    )
     meta_parser.add_argument(
         "--arggo_reproduce",
         type=str,
@@ -132,6 +141,12 @@ def _main_annotation(
                 parser = DataClassArgumentParser(parser_argument_type_hint)
                 update_parser = True
 
+                if meta_args and meta_args.arggo_interactive:
+                    console.print(
+                        "[bold cyan] Running with interactive mode [/bold cyan]"
+                    )
+                    parser = InteractiveArgumentParser(parser)
+
             if update_parser:
                 global_store.put("parser", parser)
 
@@ -140,7 +155,15 @@ def _main_annotation(
                         parser, meta_args.arggo_reproduce
                     )
                 else:
-                    experiment = NewExperiment.from_arguments(parser)
+                    # `InteractiveArgumentParser` only prompts when it sees no left-over
+                    # CLI args of its own; arggo's `--arggo_interactive` meta-flag would
+                    # otherwise count as one, so force it to treat the call as bare.
+                    interactive_args = (
+                        [] if meta_args and meta_args.arggo_interactive else None
+                    )
+                    experiment = NewExperiment.from_arguments(
+                        parser, args=interactive_args
+                    )
                 global_store.put("experiment", experiment)
             else:
                 experiment = global_store.get("experiment")

@@ -81,9 +81,11 @@ class NewExperiment(Experiment):
         return NewExperiment(args, reproduce_from_file)
 
     @classmethod
-    def from_arguments(cls, parser):
-        (args,) = parser.parse_args_into_dataclasses(return_remaining_strings=True)[:1]
-        return NewExperiment(args)
+    def from_arguments(cls, parser, args=None):
+        (parsed_args,) = parser.parse_args_into_dataclasses(
+            args=args, return_remaining_strings=True
+        )[:1]
+        return NewExperiment(parsed_args)
 
 
 def _try_discover_parameters_file(path: str):
