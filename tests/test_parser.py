@@ -21,6 +21,7 @@ from typing import List, Optional
 
 import pytest
 
+from arggo.dataclass_utils import mapped_field
 from arggo.parser import DataClassArgumentParser
 from arggo.parser import string_to_bool
 
@@ -88,6 +89,25 @@ class RequiredExample:
 
     # def __post_init__(self):
     #     self.required_enum = BasicEnum(self.required_enum)
+
+
+class Point:
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y
+
+
+def parse_point(s: str) -> Point:
+    x, y = s.split(",")
+    return Point(int(x), int(y))
+
+
+@dataclass
+class MappedExample:
+    point: Point = mapped_field(mapper=parse_point, default="0,0")
 
 
 class DataClassArgumentParserTest(unittest.TestCase):
@@ -240,6 +260,18 @@ class DataClassArgumentParserTest(unittest.TestCase):
             "--required_enum", type=str, choices=["titi", "toto"], required=True
         )
         self.argparsersEqual(parser, expected)
+
+    def test_with_mapped_field(self):
+        parser = DataClassArgumentParser(MappedExample)
+
+        (example,) = parser.parse_args_into_dataclasses(["--point", "1,2"])
+        self.assertEqual(example.point, Point(1, 2))
+
+        # A string default is run through the mapper too, since argparse
+        # applies `type=` to string defaults the same way it does to
+        # values actually supplied on the command line.
+        (example,) = parser.parse_args_into_dataclasses([])
+        self.assertEqual(example.point, Point(0, 0))
 
     def test_parse_dict(self):
         parser = DataClassArgumentParser(BasicExample)
