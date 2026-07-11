@@ -126,6 +126,15 @@ To view all possible meta-arguments, run your script with the `--arggo_help` fla
 python main.py --arggo_help
 ```
 
+These names are reserved by Arggo and cannot be used as dataclass field names:
+
+* `arggo_help`
+* `arggo_interactive`
+* `arggo_reproduce`
+
+If a field collides with one of these, Arggo raises `ArggoReservedError`. Rename the field, or opt out with
+`@arggo.configure(override_reserved_arguments=True)` if you're sure the collision is intentional.
+
 #### Interactive Runs
 
 You can provide arguments to a program interactively by supplying the `--arggo_interactive` flag:
