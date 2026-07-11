@@ -3,7 +3,7 @@ import functools
 import os
 import sys
 from argparse import ArgumentParser, Namespace
-from dataclasses import is_dataclass
+from dataclasses import fields, is_dataclass
 from os.path import join
 from typing import Any, Callable, Optional, get_type_hints, Union, Text, Sequence, List
 from rich.console import Console
@@ -11,6 +11,7 @@ from rich.console import Console
 console = Console()
 
 from .experiment import NewExperiment
+from .exceptions import ArggoReservedError
 from .integration.conda import CondaPlugin
 from .plugin import Plugin
 
@@ -70,9 +71,10 @@ def _init_logging_to_file(output_dir: str, output_file_name: str = _OUTPUT_FILE_
     file_logger.bind()
 
 
-def _meta_arguments():
-    meta_parser = ArgumentParser(add_help=False)
+_RESERVED_ARGUMENTS_URL = "https://github.com/mikimn/arggo#meta-arguments"
 
+
+def _add_meta_arguments(meta_parser: ArgumentParser) -> None:
     meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
     meta_parser.add_argument(
         "--arggo_interactive",
@@ -87,8 +89,32 @@ def _meta_arguments():
         help=f"Use this argument to reproduce a configuration from a previously saved run. Must be either "
         f"a directory containing a parameters file, or a path to such a file",
     )
+
+
+def _meta_arguments():
+    meta_parser = ArgumentParser(add_help=False)
+    _add_meta_arguments(meta_parser)
     (meta_args,) = meta_parser.parse_known_args()[:1]
     return meta_args
+
+
+def _reserved_argument_names() -> Sequence[str]:
+    meta_parser = ArgumentParser(add_help=False)
+    _add_meta_arguments(meta_parser)
+    return [action.dest for action in meta_parser._actions if action.dest != "help"]
+
+
+def _check_reserved_arguments(dtype, override_reserved_arguments: bool) -> None:
+    if override_reserved_arguments:
+        return
+    reserved_names = _reserved_argument_names()
+    for f in fields(dtype):
+        if f.name in reserved_names:
+            raise ArggoReservedError(
+                f"Error: Argument --{f.name} is reserved by Arggo. Please either rename it or set "
+                f"@arggo.configure(override_reserved_arguments=True) when initializing. For a list of "
+                f"reserved argument names, see {_RESERVED_ARGUMENTS_URL}"
+            )
 
 
 def _load_default_plugins():
@@ -100,11 +126,15 @@ def _main_annotation(
     logging_dir="logs",
     init_working_dir=True,
     plugins: List[Plugin] = None,
+    override_reserved_arguments: bool = False,
 ) -> Callable[[Any], Any]:
     """Decorate a main method with this decorator to enable Arggo
 
     :param parser_argument_index: The index of the argument which will be our dataclass (default: 0). This is useful
     when the main method receives more than one argument in a non-standard ordering.
+    :param override_reserved_arguments: By default, a dataclass field whose name collides with one of Arggo's
+    reserved meta-argument names (e.g. arggo_interactive) raises ArggoReservedError. Set this to True to allow
+    the collision instead.
     """
     if plugins is None:
         plugins = []
@@ -138,6 +168,9 @@ def _main_annotation(
             update_parser = False
             # TODO Proper caching
             if not parser:
+                _check_reserved_arguments(
+                    parser_argument_type_hint, override_reserved_arguments
+                )
                 parser = DataClassArgumentParser(parser_argument_type_hint)
                 update_parser = True
 
