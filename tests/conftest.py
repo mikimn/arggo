@@ -1,6 +1,12 @@
+import os
+
 import pytest
 
 from arggo._internal.global_store import GlobalStore
+
+# Prevent the wandb plugin from making real network calls or spawning its
+# background service process while running the test suite.
+os.environ.setdefault("WANDB_MODE", "disabled")
 
 
 @pytest.fixture(autouse=True)
