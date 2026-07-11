@@ -1,2 +1,2 @@
 from .core import consume, configure
-from .exceptions import ArggoReservedError
+from .exceptions import ArggoAlreadyConfiguredError, ArggoReservedError
