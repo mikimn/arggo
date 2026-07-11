@@ -71,9 +71,6 @@ def _init_logging_to_file(output_dir: str, output_file_name: str = _OUTPUT_FILE_
     file_logger.bind()
 
 
-_RESERVED_ARGUMENTS_URL = "https://github.com/mikimn/arggo#meta-arguments"
-
-
 def _add_meta_arguments(meta_parser: ArgumentParser) -> None:
     meta_parser.add_argument("--arggo_help", action=_MetaHelpAction, nargs=0)
     meta_parser.add_argument(
@@ -91,17 +88,21 @@ def _add_meta_arguments(meta_parser: ArgumentParser) -> None:
     )
 
 
-def _meta_arguments():
+def _build_meta_parser() -> ArgumentParser:
     meta_parser = ArgumentParser(add_help=False)
     _add_meta_arguments(meta_parser)
-    (meta_args,) = meta_parser.parse_known_args()[:1]
+    return meta_parser
+
+
+def _meta_arguments():
+    (meta_args,) = _build_meta_parser().parse_known_args()[:1]
     return meta_args
 
 
 def _reserved_argument_names() -> Sequence[str]:
-    meta_parser = ArgumentParser(add_help=False)
-    _add_meta_arguments(meta_parser)
-    return [action.dest for action in meta_parser._actions if action.dest != "help"]
+    return [
+        action.dest for action in _build_meta_parser()._actions if action.dest != "help"
+    ]
 
 
 def _check_reserved_arguments(dtype, override_reserved_arguments: bool) -> None:
@@ -112,8 +113,8 @@ def _check_reserved_arguments(dtype, override_reserved_arguments: bool) -> None:
         if f.name in reserved_names:
             raise ArggoReservedError(
                 f"Error: Argument --{f.name} is reserved by Arggo. Please either rename it or set "
-                f"@arggo.configure(override_reserved_arguments=True) when initializing. For a list of "
-                f"reserved argument names, see {_RESERVED_ARGUMENTS_URL}"
+                f"@arggo.configure(override_reserved_arguments=True) when initializing. "
+                f"Reserved argument names: {', '.join(sorted(reserved_names))}"
             )
 
 
