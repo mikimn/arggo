@@ -199,7 +199,11 @@ class DataClassArgumentParser(ArgumentParser):
             elif isinstance(field.type, type) and issubclass(field.type, Enum):
                 kwargs = _handle_kwargs_enum(field, kwargs)
             else:
-                kwargs["type"] = field.type
+                # A mapped_field() may have already supplied its mapper as
+                # metadata["type"]; only fall back to the raw field type
+                # when no such override is present.
+                if "type" not in kwargs:
+                    kwargs["type"] = field.type
                 if field.default is not dataclasses.MISSING:
                     kwargs["default"] = field.default
                 elif field.default_factory is not dataclasses.MISSING:
