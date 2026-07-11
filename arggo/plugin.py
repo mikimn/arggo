@@ -13,7 +13,9 @@ class Plugin(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def parameters_dump(self) -> Union[Dict[str, Any], None]:
+    def parameters_dump(
+        self, parameters: Dict[str, Any]
+    ) -> Union[Dict[str, Any], None]:
         raise NotImplementedError()
 
     def __eq__(self, other):

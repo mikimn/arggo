@@ -32,8 +32,9 @@ class Experiment(ABC):
 
     def to_json(self, plugins: List[Plugin]):
         meta_params = self.meta_parameters
+        parameters = asdict(self.stripped_parameters)
         for plugin in plugins:
-            dump = plugin.parameters_dump()
+            dump = plugin.parameters_dump(parameters)
             if dump is not None:
                 meta_params[plugin.name] = dump
         return dataclass_to_json(self.stripped_parameters, {_METADATA_KEY: meta_params})
