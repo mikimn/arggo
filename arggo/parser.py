@@ -45,6 +45,26 @@ def string_to_bool(v):
         )
 
 
+_HYDRA_STYLE_KEY_PATTERN = re.compile(r"^[A-Za-z_][\w\-]*$")
+
+
+def _convert_hydra_style_args(args: List[str]) -> List[str]:
+    """Rewrite bare Hydra-style `key=value` tokens into argparse-style
+    `--key value` pairs, so both styles can be used (and mixed) on the same
+    command line. Tokens that already start with `-` (including argparse's
+    own `--key=value` form) are left untouched.
+    """
+    converted = []
+    for arg in args:
+        key, sep, value = arg.partition("=")
+        if sep and not arg.startswith("-") and _HYDRA_STYLE_KEY_PATTERN.match(key):
+            converted.append(f"--{key}")
+            converted.append(value)
+        else:
+            converted.append(arg)
+    return converted
+
+
 def _handle_kwargs_bool(field, kwargs):
     kwargs["type"] = string_to_bool
     if field.type is bool or (
@@ -253,6 +273,9 @@ class DataClassArgumentParser(ArgumentParser):
                 args = fargs + args if args is not None else fargs + sys.argv[1:]
                 # in case of duplicate arguments the first one has precedence
                 # so we append rather than prepend.
+        if args is None:
+            args = sys.argv[1:]
+        args = _convert_hydra_style_args(args)
         namespace, remaining_args = self.parse_known_args(args=args)
         outputs = []
         for dtype in self.dataclass_types:

@@ -292,3 +292,33 @@ class DataClassArgumentParserTest(unittest.TestCase):
         # parser = DataClassArgumentParser(TrainingArguments)
         # self.assertIsNotNone(parser)
         raise NotImplementedError()
+
+
+class TestHydraStyleArgs(unittest.TestCase):
+    def test_hydra_style_args(self):
+        parser = DataClassArgumentParser(BasicExample)
+        (example,) = parser.parse_args_into_dataclasses(
+            ["foo=12", "bar=3.14", "baz=42", "flag=true"]
+        )
+        self.assertEqual(example, BasicExample(foo=12, bar=3.14, baz="42", flag=True))
+
+    def test_hydra_and_argparse_styles_can_be_mixed(self):
+        parser = DataClassArgumentParser(BasicExample)
+        (example,) = parser.parse_args_into_dataclasses(
+            ["--foo", "12", "bar=3.14", "--baz", "42", "flag=true"]
+        )
+        self.assertEqual(example, BasicExample(foo=12, bar=3.14, baz="42", flag=True))
+
+    def test_hydra_style_value_may_contain_equals_sign(self):
+        parser = DataClassArgumentParser(BasicExample)
+        (example,) = parser.parse_args_into_dataclasses(
+            ["foo=1", "bar=1.0", "baz=a=b=c", "flag=false"]
+        )
+        self.assertEqual(example.baz, "a=b=c")
+
+    def test_argparse_equals_form_is_left_untouched(self):
+        parser = DataClassArgumentParser(BasicExample)
+        (example,) = parser.parse_args_into_dataclasses(
+            ["--foo=1", "--bar=1.0", "--baz=hello", "--flag=true"]
+        )
+        self.assertEqual(example, BasicExample(foo=1, bar=1.0, baz="hello", flag=True))
