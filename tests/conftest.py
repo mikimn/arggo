@@ -1,5 +1,4 @@
 import os
-
 import pytest
 
 from arggo._internal.global_store import GlobalStore
