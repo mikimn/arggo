@@ -12,8 +12,7 @@ console = Console()
 
 from .experiment import NewExperiment
 from .exceptions import ArggoAlreadyConfiguredError, ArggoReservedError
-from .integration.conda import CondaPlugin
-from .integration.wandb import WandbPlugin
+from . import integration  # noqa: F401 - importing registers the built-in plugins
 from .plugin import Plugin
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
@@ -87,11 +86,8 @@ def _add_meta_arguments(meta_parser: ArgumentParser) -> None:
         help=f"Use this argument to reproduce a configuration from a previously saved run. Must be either "
         f"a directory containing a parameters file, or a path to such a file",
     )
-    meta_parser.add_argument(
-        "--wandb_disable",
-        action="store_true",
-        help="Disable logging this run's parameters to Weights & Biases, even if wandb is installed",
-    )
+    for plugin_cls in Plugin.registry:
+        plugin_cls.add_meta_arguments(meta_parser)
 
 
 def _build_meta_parser() -> ArgumentParser:
@@ -136,7 +132,7 @@ def _check_not_already_configured(task_function: TaskFunction) -> None:
 
 
 def _load_default_plugins():
-    return [CondaPlugin(), WandbPlugin()]
+    return [plugin_cls() for plugin_cls in Plugin.registry]
 
 
 def _main_annotation(

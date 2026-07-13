@@ -1,10 +1,9 @@
 # Integration utilities for Weights & Biases
 import sys
+from argparse import ArgumentParser
 from typing import Any, Dict, Union
 
 from arggo.plugin import Plugin
-
-_DISABLE_FLAG = "--wandb_disable"
 
 
 def is_wandb_available() -> bool:
@@ -19,19 +18,29 @@ def is_wandb_available() -> bool:
     return True
 
 
-def is_wandb_disabled() -> bool:
-    return _DISABLE_FLAG in sys.argv
-
-
 class WandbPlugin(Plugin):
+    _DISABLE_FLAG = "--wandb_disable"
+
     @property
     def name(self):
         return "wandb"
 
+    @classmethod
+    def add_meta_arguments(cls, meta_parser: ArgumentParser) -> None:
+        meta_parser.add_argument(
+            cls._DISABLE_FLAG,
+            action="store_true",
+            help="Disable logging this run's parameters to Weights & Biases, even if wandb is installed",
+        )
+
+    @classmethod
+    def is_disabled(cls) -> bool:
+        return cls._DISABLE_FLAG in sys.argv
+
     def parameters_dump(
         self, parameters: Dict[str, Any]
     ) -> Union[Dict[str, Any], None]:
-        if is_wandb_disabled() or not is_wandb_available():
+        if self.is_disabled() or not is_wandb_available():
             return None
         import wandb
 

@@ -131,10 +131,11 @@ These names are reserved by Arggo and cannot be used as dataclass field names:
 * `arggo_help`
 * `arggo_interactive`
 * `arggo_reproduce`
-* `wandb_disable`
 
-If a field collides with one of these, Arggo raises `ArggoReservedError`. Rename the field, or opt out with
-`@arggo.configure(override_reserved_arguments=True)` if you're sure the collision is intentional.
+Installed plugins may reserve additional names of their own (see each plugin's own documentation, e.g.
+[Weights & Biases](#weights--biases) below). If a field collides with any reserved name, Arggo raises
+`ArggoReservedError`. Rename the field, or opt out with `@arggo.configure(override_reserved_arguments=True)` if
+you're sure the collision is intentional.
 
 #### Interactive Runs
 

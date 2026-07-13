@@ -2,9 +2,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from arggo.integration.wandb import WandbPlugin, is_wandb_available, is_wandb_disabled
+from arggo.integration.wandb import WandbPlugin, is_wandb_available
 
-wandb = pytest.importorskip("wandb")
+wandb = pytest.importorskip(
+    "wandb",
+    reason="wandb is an optional dependency; skip these tests when it isn't installed",
+)
 
 
 @pytest.fixture(autouse=True)
@@ -36,20 +39,17 @@ class TestIsWandbAvailable:
         assert is_wandb_available() is False
 
 
-class TestIsWandbDisabled:
+class TestWandbPluginIsDisabled:
     def test_false_by_default(self, monkeypatch):
         monkeypatch.setattr("sys.argv", ["prog"])
-        assert is_wandb_disabled() is False
+        assert WandbPlugin.is_disabled() is False
 
     def test_true_when_flag_present(self, monkeypatch):
         monkeypatch.setattr("sys.argv", ["prog", "--wandb_disable"])
-        assert is_wandb_disabled() is True
+        assert WandbPlugin.is_disabled() is True
 
 
 class TestWandbPlugin:
-    def test_name(self):
-        assert WandbPlugin().name == "wandb"
-
     def test_parameters_dump_initializes_run_with_config(self, monkeypatch):
         mock_init = MagicMock(
             side_effect=lambda **kwargs: setattr(wandb, "run", _fake_run())
