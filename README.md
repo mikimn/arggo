@@ -113,10 +113,10 @@ Greetings for the 3rd time, John!
 
 The `consume` and `configure()` decorators work for any function, and guarantee that the same objects are provided each time.
 
-**Note**: Arggo relies on the first `configure()` it uses to load everything, initialize the work directory and
-configure parametes. Future versions will make `consume` automatically find
-the appropriate type parameter to inject the arguments object into, and consequently
-`configure()` will throw an error when used more than once.
+**Note**: Arggo relies on the first `consume`/`configure()`-decorated call in a process to load everything and
+initialize the work directory; calling that same decorated function again (e.g. in a loop, as above) reuses it.
+Calling a *different* `consume`/`configure()`-decorated entry point in the same process instead raises
+`ArggoAlreadyConfiguredError`, since only one entry point's configuration can be in effect per process.
 
 ### Meta-arguments
 

@@ -5,6 +5,7 @@ import pytest
 
 import arggo
 from arggo.dataclass_utils import parser_field
+from arggo.exceptions import ArggoAlreadyConfiguredError
 
 
 @dataclass
@@ -80,3 +81,26 @@ class TestConfigureAnnotation:
 
         # assert decorated("World!") == "Hello, World!"
         # sys.argv += old_sys_argv
+
+
+class TestMultipleConfigureCalls:
+    def test_same_function_called_repeatedly_does_not_raise(self):
+        @arggo.consume
+        def decorated(args: SimpleArguments):
+            return args.just_a_string
+
+        for _ in range(3):
+            assert decorated() == "Hello"
+
+    def test_second_distinct_entry_point_raises(self):
+        @arggo.consume
+        def first(args: SimpleArguments):
+            return args.just_a_string
+
+        @arggo.consume
+        def second(args: SimpleArguments):
+            return args.just_a_string
+
+        first()
+        with pytest.raises(ArggoAlreadyConfiguredError):
+            second()

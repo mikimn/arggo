@@ -11,7 +11,7 @@ from rich.console import Console
 console = Console()
 
 from .experiment import NewExperiment
-from .exceptions import ArggoReservedError
+from .exceptions import ArggoAlreadyConfiguredError, ArggoReservedError
 from .integration.conda import CondaPlugin
 from .plugin import Plugin
 
@@ -118,6 +118,17 @@ def _check_reserved_arguments(dtype, override_reserved_arguments: bool) -> None:
             )
 
 
+def _check_not_already_configured(task_function: TaskFunction) -> None:
+    configured_by = global_store.get("configured_by", None)
+    if configured_by is not None and configured_by is not task_function:
+        raise ArggoAlreadyConfiguredError(
+            f"Error: Arggo has already been configured by a different entry point "
+            f"({configured_by.__qualname__}) in this process. consume()/configure() "
+            f"perform a one-time, process-wide setup: call the same decorated function "
+            f"repeatedly (e.g. in a loop) rather than decorating more than one entry point."
+        )
+
+
 def _load_default_plugins():
     return [CondaPlugin()]
 
@@ -164,6 +175,8 @@ def _main_annotation(
             save_parameters = True
             log_to_file = True
 
+            _check_not_already_configured(task_function)
+
             meta_args = _meta_arguments()
             parser = global_store.get("parser", None)
             update_parser = False
@@ -183,6 +196,7 @@ def _main_annotation(
 
             if update_parser:
                 global_store.put("parser", parser)
+                global_store.put("configured_by", task_function)
 
                 if meta_args and meta_args.arggo_reproduce is not None:
                     experiment = NewExperiment.from_reproduced(
