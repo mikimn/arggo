@@ -30,7 +30,9 @@ class CondaPlugin(Plugin):
     def name(self):
         return "conda"
 
-    def parameters_dump(self) -> Union[Dict[str, Any], None]:
+    def parameters_dump(
+        self, parameters: Dict[str, Any]
+    ) -> Union[Dict[str, Any], None]:
         if not is_under_conda():
             return None
         return asdict(conda_environment())
