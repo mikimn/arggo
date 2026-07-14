@@ -18,10 +18,6 @@ class PluginMeta(ABCMeta):
 
 
 class Plugin(metaclass=PluginMeta):
-    # @abstractmethod
-    # def install(self):
-    #     raise NotImplementedError()
-
     @property
     @abstractmethod
     def name(self):
