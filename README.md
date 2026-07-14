@@ -126,7 +126,8 @@ the two can be freely mixed on the same command line:
 python main.py --name John should_greet=true
 ```
 A bare `key=value` token is only treated as Hydra-style if it doesn't already start with `-`, so `--name=John` keeps
-its usual argparse meaning.
+its usual argparse meaning. Hyphens in a Hydra-style key are normalized to underscores (`some-field=value` sets
+`some_field`), since dataclass field names are Python identifiers and can't contain hyphens.
 
 ### Meta-arguments
 

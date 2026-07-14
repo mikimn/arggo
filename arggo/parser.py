@@ -53,12 +53,16 @@ def _convert_hydra_style_args(args: List[str]) -> List[str]:
     `--key value` pairs, so both styles can be used (and mixed) on the same
     command line. Tokens that already start with `-` (including argparse's
     own `--key=value` form) are left untouched.
+
+    A key's hyphens are normalized to underscores (`key-2` -> `--key_2`),
+    since dataclass field names - and therefore the actual registered
+    argparse flags - are Python identifiers and can't contain hyphens.
     """
     converted = []
     for arg in args:
         key, sep, value = arg.partition("=")
         if sep and not arg.startswith("-") and _HYDRA_STYLE_KEY_PATTERN.match(key):
-            converted.append(f"--{key}")
+            converted.append(f"--{key.replace('-', '_')}")
             converted.append(value)
         else:
             converted.append(arg)

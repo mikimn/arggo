@@ -322,3 +322,12 @@ class TestHydraStyleArgs(unittest.TestCase):
             ["--foo=1", "--bar=1.0", "--baz=hello", "--flag=true"]
         )
         self.assertEqual(example, BasicExample(foo=1, bar=1.0, baz="hello", flag=True))
+
+    def test_hydra_style_key_hyphens_are_normalized_to_underscores(self):
+        @dataclass
+        class Underscored:
+            key_2: str = "default"
+
+        parser = DataClassArgumentParser(Underscored)
+        (example,) = parser.parse_args_into_dataclasses(["key-2=value"])
+        self.assertEqual(example.key_2, "value")
