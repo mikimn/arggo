@@ -118,6 +118,17 @@ initialize the work directory; calling that same decorated function again (e.g. 
 Calling a *different* `consume`/`configure()`-decorated entry point in the same process instead raises
 `ArggoAlreadyConfiguredError`, since only one entry point's configuration can be in effect per process.
 
+### Parameter Styles
+
+Arguments can be passed either argparse-style (`--name value`, or `--name=value`) or Hydra-style (`name=value`), and
+the two can be freely mixed on the same command line:
+```shell
+python main.py --name John should_greet=true
+```
+A bare `key=value` token is only treated as Hydra-style if it doesn't already start with `-`, so `--name=John` keeps
+its usual argparse meaning. Hyphens in a Hydra-style key are normalized to underscores (`some-field=value` sets
+`some_field`), since dataclass field names are Python identifiers and can't contain hyphens.
+
 ### Meta-arguments
 
 Arggo attaches meta-arguments to each script, allowing for some extra functionality.
