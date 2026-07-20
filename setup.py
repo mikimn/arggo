@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="arggo",
-    version="0.3.0",
+    version="0.3.1",
     author="Miki Mendelson-Mints",
     author_email="mikimn1999@gmail.com",
     description="The no-brainer package for setting up python experiments.",
