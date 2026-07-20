@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without a leading 'v' (e.g. 1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version format
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([ab][0-9]+|rc[0-9]+)?$ ]]; then
+            echo "::error::'${{ inputs.version }}' doesn't look like a valid version (expected e.g. 1.2.3 or 1.2.3rc1)"
+            exit 1
+          fi
+          if git rev-parse "v${{ inputs.version }}" >/dev/null 2>&1; then
+            echo "::error::Tag v${{ inputs.version }} already exists"
+            exit 1
+          fi
+          current_version=$(sed -n "s/.*version=\"\(.*\)\".*/\1/p" setup.py)
+          if [ "${{ inputs.version }}" = "$current_version" ]; then
+            echo "::error::setup.py is already at version $current_version - nothing to bump. Pick a new version."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Test
+        run: python -m pytest --cov=arggo
+
+      - name: Bump version in setup.py and setup.cfg
+        run: |
+          sed -i "s/version=\"[^\"]*\"/version=\"${{ inputs.version }}\"/" setup.py
+          sed -i "s/^version = .*/version = ${{ inputs.version }}/" setup.cfg
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "[RELEASE] Bump version to ${{ inputs.version }}"
+
+      - name: Tag
+        run: git tag "v${{ inputs.version }}"
+
+      - name: Push commit and tag
+        run: git push origin HEAD:${{ github.ref_name }} "v${{ inputs.version }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes
+
+      # Publishing here directly, rather than relying on python-publish.yml's
+      # `on: release: created` trigger, because GitHub Actions does not let
+      # a workflow run authenticated as the default GITHUB_TOKEN (as the
+      # release creation above is) trigger other workflows - that trigger
+      # only fires for releases a human creates by hand, e.g. via the web UI.
+      - name: Build package
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
